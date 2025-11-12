@@ -1,0 +1,195 @@
+"""
+Test script for AI Gateway integration
+Run this to verify your ngrok endpoint is working correctly
+"""
+
+import sys
+import os
+
+# Add parent directory to path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from app.ai_gateway_client import ai_client, generate_text, check_ai_available
+from dotenv import load_dotenv
+
+load_dotenv()
+
+def test_availability():
+    """Test if AI service is available"""
+    print("=" * 60)
+    print("Testing AI Gateway Availability")
+    print("=" * 60)
+    
+    available = check_ai_available()
+    
+    if available:
+        print("✓ AI Gateway is available and responding")
+        return True
+    else:
+        print("✗ AI Gateway is not available")
+        print("\nTroubleshooting:")
+        print("1. Check if ngrok tunnel is running")
+        print("2. Verify AI_GATEWAY_URL in .env")
+        print("3. Test endpoint manually with curl")
+        return False
+
+def test_text_generation():
+    """Test text generation"""
+    print("\n" + "=" * 60)
+    print("Testing Text Generation")
+    print("=" * 60)
+    
+    try:
+        prompt = "List 3 key skills for a software engineer. Use bullet points."
+        print(f"\nPrompt: {prompt}")
+        print("\nGenerating response...")
+        
+        response = generate_text(
+            prompt=prompt,
+            max_tokens=150,
+            temperature=0.7,
+            timeout=30
+        )
+        
+        print(f"\n✓ Response received:")
+        print("-" * 60)
+        print(response)
+        print("-" * 60)
+        return True
+        
+    except Exception as e:
+        print(f"\n✗ Text generation failed: {e}")
+        return False
+
+def test_insights_generation():
+    """Test insights generation (similar to actual use case)"""
+    print("\n" + "=" * 60)
+    print("Testing Insights Generation")
+    print("=" * 60)
+    
+    try:
+        prompt = """Analyze candidate strengths for this job.
+
+Job Requirements:
+Looking for a Senior Software Engineer with Python, React, and AWS experience.
+
+Resume:
+Software Engineer with 5 years experience in Python and React development.
+
+Matched Skills: Python, React
+Score: 75/100
+
+List 3-4 specific strengths. Use - for bullets."""
+
+        print("\nGenerating insights...")
+        
+        response = generate_text(
+            prompt=prompt,
+            max_tokens=200,
+            temperature=0.7,
+            timeout=30
+        )
+        
+        print(f"\n✓ Insights generated:")
+        print("-" * 60)
+        print(response)
+        print("-" * 60)
+        return True
+        
+    except Exception as e:
+        print(f"\n✗ Insights generation failed: {e}")
+        return False
+
+def test_bullet_rewriting():
+    """Test bullet rewriting (AutoFix feature)"""
+    print("\n" + "=" * 60)
+    print("Testing Bullet Rewriting")
+    print("=" * 60)
+    
+    try:
+        from app.ai_gateway_client import AI_MODEL
+        
+        prompt = """Rewrite these resume bullet points to be more impactful and professional.
+
+Job Context:
+Senior Software Engineer position requiring Python and cloud experience.
+
+Original Bullets:
+1. Worked on backend systems
+2. Fixed bugs in the application
+3. Helped team with code reviews
+
+Instructions:
+- Start with strong action verbs (Led, Managed, Developed, Implemented, etc.)
+- Add quantifiable metrics where possible (%, $, numbers)
+- Keep the same meaning but make it more compelling
+- Be concise and specific
+- Match the job requirements
+
+Rewrite each bullet on a new line, numbered 1., 2., 3., etc."""
+
+        print("\nRewriting bullets...")
+        
+        response = generate_text(
+            prompt=prompt,
+            model=AI_MODEL,
+            max_tokens=300,
+            temperature=0.7,
+            timeout=30
+        )
+        
+        print(f"\n✓ Bullets rewritten:")
+        print("-" * 60)
+        print(response)
+        print("-" * 60)
+        return True
+        
+    except Exception as e:
+        print(f"\n✗ Bullet rewriting failed: {e}")
+        return False
+
+def main():
+    """Run all tests"""
+    print("\n" + "=" * 60)
+    print("AI GATEWAY INTEGRATION TEST")
+    print("=" * 60)
+    
+    # Show configuration
+    print(f"\nConfiguration:")
+    print(f"  Gateway URL: {os.getenv('AI_GATEWAY_URL', 'Not set')}")
+    print(f"  Endpoint: {os.getenv('AI_GATEWAY_ENDPOINT', '/api/chat')}")
+    print(f"  AI Model: {os.getenv('AI_MODEL', 'gemma3:4b')}")
+    
+    # Run tests
+    results = []
+    
+    results.append(("Availability Check", test_availability()))
+    
+    if results[0][1]:  # Only continue if available
+        results.append(("Text Generation", test_text_generation()))
+        results.append(("Insights Generation", test_insights_generation()))
+        results.append(("Bullet Rewriting", test_bullet_rewriting()))
+    
+    # Summary
+    print("\n" + "=" * 60)
+    print("TEST SUMMARY")
+    print("=" * 60)
+    
+    for test_name, passed in results:
+        status = "✓ PASSED" if passed else "✗ FAILED"
+        print(f"{test_name}: {status}")
+    
+    total_passed = sum(1 for _, passed in results if passed)
+    total_tests = len(results)
+    
+    print(f"\nTotal: {total_passed}/{total_tests} tests passed")
+    
+    if total_passed == total_tests:
+        print("\n🎉 All tests passed! AI Gateway is working correctly.")
+        return 0
+    else:
+        print("\n⚠️  Some tests failed. Please check the errors above.")
+        return 1
+
+if __name__ == "__main__":
+    exit(main())

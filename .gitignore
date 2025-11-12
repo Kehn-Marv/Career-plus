@@ -1,0 +1,67 @@
+# Documentation files
+ACCESSIBILITY_COMPLETE.md
+AI_GATEWAY_ARCHITECTURE.md
+AI_GATEWAY_MIGRATION_GUIDE.md
+CONFIGURATION_EXPLAINED.md
+FEATURE_FLOW_DOCUMENTATION.md
+IMPLEMENTATION_SUMMARY.md
+LOCALIZATION_ARCHITECTURE.md
+LOCALIZATION_BEFORE_AFTER.md
+LOCALIZATION_CHECKLIST.md
+LOCALIZATION_COMPLETE_SUMMARY.md
+LOCALIZATION_INTEGRATION.md
+LOCALIZATION_QUICK_START.md
+MIGRATION_SUMMARY.md
+QUICKSTART.md
+QUICK_START.md
+TASK_19_COMPLETE.md
+TASK_19_STATUS.md
+UPDATED_CONFIGURATION.md
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# Environment variables
+.env
+.env.local
+
+# IDE
+.vscode/
+.kiro/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log

@@ -1,0 +1,587 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Premium Gradient Colors - Emerald/Forest Green Theme */
+    --color-primary-emerald: #10b981;
+    --color-primary-forest: #064e3b;
+    --color-primary-green: #059669;
+    --color-primary-teal: #047857;
+
+    /* Gradient Definitions - Premium Emerald Theme */
+    --gradient-hero: linear-gradient(135deg, #064e3b 0%, #047857 25%, #059669 50%, #10b981 100%);
+    --gradient-card-base: linear-gradient(135deg, rgba(5, 150, 105, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%);
+    --gradient-button: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    --gradient-emerald: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    --gradient-forest: linear-gradient(135deg, #064e3b 0%, #047857 100%);
+    --gradient-green-teal: linear-gradient(135deg, #10b981 0%, #14b8a6 100%);
+
+    /* Mesh Gradient Background (4 radial gradients) - Emerald Theme */
+    --gradient-mesh: 
+      radial-gradient(at 0% 0%, rgba(6, 78, 59, 0.3) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(4, 120, 87, 0.3) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.3) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, rgba(5, 150, 105, 0.3) 0px, transparent 50%);
+
+    /* Glassmorphism Tokens */
+    /* Glass Light - for light backgrounds */
+    --glass-light-bg: rgba(255, 255, 255, 0.7);
+    --glass-light-border: rgba(255, 255, 255, 0.3);
+    --glass-light-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+    --glass-light-blur: 12px;
+
+    /* Glass Dark - for dark backgrounds */
+    --glass-dark-bg: rgba(255, 255, 255, 0.05);
+    --glass-dark-border: rgba(255, 255, 255, 0.1);
+    --glass-dark-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    --glass-dark-blur: 12px;
+
+    /* Glass Hover - enhanced state */
+    --glass-hover-bg: rgba(255, 255, 255, 0.8);
+    --glass-hover-border: rgba(255, 255, 255, 0.4);
+    --glass-hover-shadow: 0 12px 48px rgba(0, 0, 0, 0.12);
+    --glass-hover-blur: 16px;
+  }
+
+  * {
+    @apply border-gray-200;
+  }
+  
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold;
+    font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  h1 {
+    letter-spacing: -0.03em;
+    font-weight: 800;
+  }
+
+  h2 {
+    letter-spacing: -0.02em;
+    font-weight: 700;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  /* Screen reader only - visible on focus */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+  
+  .focus\:not-sr-only:focus {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: inherit;
+    margin: inherit;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+
+  /* Glassmorphism Utility Classes */
+  
+  /* Glass Light - for use on light/gradient backgrounds */
+  .glass-light {
+    background: var(--glass-light-bg);
+    border: 1px solid var(--glass-light-border);
+    box-shadow: var(--glass-light-shadow);
+    backdrop-filter: blur(var(--glass-light-blur));
+    -webkit-backdrop-filter: blur(var(--glass-light-blur));
+  }
+
+  /* Fallback for browsers without backdrop-filter support */
+  @supports not (backdrop-filter: blur(12px)) {
+    .glass-light {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  /* Glass Dark - for use on dark backgrounds */
+  .glass-dark {
+    background: var(--glass-dark-bg);
+    border: 1px solid var(--glass-dark-border);
+    box-shadow: var(--glass-dark-shadow);
+    backdrop-filter: blur(var(--glass-dark-blur));
+    -webkit-backdrop-filter: blur(var(--glass-dark-blur));
+  }
+
+  /* Fallback for browsers without backdrop-filter support */
+  @supports not (backdrop-filter: blur(12px)) {
+    .glass-dark {
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+  }
+
+  /* Glass Hover - enhanced state for interactive elements */
+  .glass-hover {
+    background: var(--glass-hover-bg);
+    border: 1px solid var(--glass-hover-border);
+    box-shadow: var(--glass-hover-shadow);
+    backdrop-filter: blur(var(--glass-hover-blur));
+    -webkit-backdrop-filter: blur(var(--glass-hover-blur));
+    transform: translateY(-2px);
+    transition: all 300ms ease-out;
+  }
+
+  /* Fallback for browsers without backdrop-filter support */
+  @supports not (backdrop-filter: blur(16px)) {
+    .glass-hover {
+      background: rgba(255, 255, 255, 0.98);
+      border: 1px solid rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  /* Typography Utility Classes */
+  
+  /* Hero Headline - Large gradient text for hero sections */
+  .hero-headline {
+    font-size: 3.75rem; /* 60px */
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    background: var(--gradient-emerald);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  @media (min-width: 1024px) {
+    .hero-headline {
+      font-size: 4.5rem; /* 72px */
+    }
+  }
+
+  /* Mobile optimization: reduce from 48px to 36px */
+  @media (max-width: 640px) {
+    .hero-headline {
+      font-size: 2.25rem; /* 36px */
+    }
+  }
+
+  /* Section Heading - For major section titles */
+  .section-heading {
+    font-size: 2.25rem; /* 36px */
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: var(--color-gray-900);
+  }
+
+  @media (max-width: 768px) {
+    .section-heading {
+      font-size: 1.875rem; /* 30px */
+      line-height: 1.3;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .section-heading {
+      font-size: 1.5rem; /* 24px */
+      line-height: 1.3;
+    }
+  }
+
+  /* Body Text - Optimized for readability */
+  .body-text {
+    font-size: 1.125rem; /* 18px */
+    line-height: 1.6;
+    color: var(--color-gray-600);
+  }
+
+  /* Ensure minimum 16px on mobile to prevent zoom */
+  @media (max-width: 768px) {
+    .body-text {
+      font-size: 1rem; /* 16px */
+      line-height: 1.6;
+    }
+  }
+
+  /* Gradient Text Utilities */
+  
+  /* Default gradient text - emerald gradient */
+  .text-gradient {
+    background: var(--gradient-emerald);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Hero gradient - multi-color emerald gradient */
+  .text-gradient-hero {
+    background: var(--gradient-hero);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Emerald gradient */
+  .text-gradient-emerald {
+    background: var(--gradient-emerald);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Forest green gradient */
+  .text-gradient-forest {
+    background: var(--gradient-forest);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Green to teal gradient */
+  .text-gradient-green-teal {
+    background: var(--gradient-green-teal);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Ensure text selection works with gradient text */
+  .text-gradient::selection,
+  .text-gradient-hero::selection,
+  .text-gradient-emerald::selection,
+  .text-gradient-forest::selection {
+    -webkit-text-fill-color: white;
+    background-color: rgba(5, 150, 105, 0.3);
+  }
+
+  /* Mesh gradient background utility */
+  .bg-gradient-mesh {
+    background: var(--gradient-mesh);
+  }
+
+  /* Mobile-optimized mesh gradient (2 gradients instead of 4) */
+  @media (max-width: 640px) {
+    .bg-gradient-mesh {
+      background: 
+        radial-gradient(at 0% 0%, rgba(6, 78, 59, 0.3) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.3) 0px, transparent 50%);
+    }
+  }
+
+  /* Animation Utilities */
+  
+  /* Gradient shift animation for animated backgrounds */
+  /* Optimized with GPU acceleration - limited to hero section only */
+  @keyframes gradient-shift {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  .animate-gradient-shift {
+    animation: gradient-shift 15s ease infinite;
+    /* GPU acceleration */
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+
+  /* Glow pulse animation for primary buttons */
+  @keyframes glow-pulse {
+    0%, 100% {
+      box-shadow: 0 4px 16px rgba(5, 150, 105, 0.3);
+    }
+    50% {
+      box-shadow: 0 8px 32px rgba(5, 150, 105, 0.5);
+    }
+  }
+
+  .animate-glow-pulse {
+    animation: glow-pulse 2s ease-in-out infinite;
+  }
+
+  /* Floating animation for product preview cards */
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  /* Fade in up animation for scroll reveals */
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in-up {
+    animation: fade-in-up 0.6s ease forwards;
+  }
+
+  /* Slide in animation for chat sidebar */
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  .animate-slideIn {
+    animation: slideIn 0.3s ease-out forwards;
+  }
+
+  /* Fade in animation for backdrop */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+
+  /* Stagger delays for multiple elements */
+  .delay-100 {
+    animation-delay: 0.1s;
+  }
+
+  .delay-200 {
+    animation-delay: 0.2s;
+  }
+
+  .delay-300 {
+    animation-delay: 0.3s;
+  }
+
+  .delay-400 {
+    animation-delay: 0.4s;
+  }
+
+  .delay-500 {
+    animation-delay: 0.5s;
+  }
+
+  /* Respect prefers-reduced-motion setting - WCAG compliance */
+  @media (prefers-reduced-motion: reduce) {
+    /* Disable all animations */
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+    
+    /* Disable specific animations */
+    .animate-gradient-shift,
+    .animate-glow-pulse,
+    .animate-float,
+    .animate-fade-in-up {
+      animation: none !important;
+    }
+    
+    /* Ensure elements are visible when animations are disabled */
+    .animate-fade-in-up {
+      opacity: 1 !important;
+      transform: translateY(0) !important;
+    }
+    
+    /* Disable hover transforms */
+    .hover\:-translate-y-1:hover,
+    .hover\:-translate-y-0\.5:hover,
+    .hover\:scale-\[1\.02\]:hover {
+      transform: none !important;
+    }
+    
+    /* Keep focus indicators visible */
+    *:focus-visible {
+      transition: none !important;
+    }
+  }
+
+  /* Touch device optimizations */
+  @media (hover: none) and (pointer: coarse) {
+    /* Disable hover animations on touch devices */
+    .hover\:-translate-y-1:hover,
+    .hover\:-translate-y-0\.5:hover {
+      transform: none;
+    }
+    
+    /* Ensure tap targets are accessible */
+    button,
+    a {
+      -webkit-tap-highlight-color: rgba(5, 150, 105, 0.1);
+    }
+    
+    /* PERFORMANCE: Optimize glassmorphism on mobile - 8px blur for better performance */
+    .glass-light,
+    .glass-dark {
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+  }
+
+  /* GPU acceleration utilities for performance */
+  .transform-gpu {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+
+  /* Performance optimization: Limit number of glass elements with blur */
+  /* Apply will-change only to elements that are actively animating */
+  .glass-light:hover,
+  .glass-dark:hover,
+  .glass-hover {
+    will-change: transform, backdrop-filter;
+  }
+
+  /* Remove will-change after animation completes */
+  .glass-light:not(:hover),
+  .glass-dark:not(:hover) {
+    will-change: auto;
+  }
+
+  /* Accessibility: High Contrast Text Utilities */
+  /* Ensures WCAG AA compliance (4.5:1 for normal text, 3:1 for large text) */
+  
+  /* High contrast text for light backgrounds */
+  .text-high-contrast-light {
+    color: #1C1917; /* gray-900 - ensures 4.5:1+ on white */
+  }
+  
+  /* High contrast text for dark backgrounds */
+  .text-high-contrast-dark {
+    color: #FAFAF9; /* gray-50 - ensures 4.5:1+ on dark */
+  }
+  
+  /* Ensure gradient text has sufficient contrast */
+  /* Override gradient text with solid color when contrast is insufficient */
+  @media (prefers-contrast: more) {
+    .text-gradient,
+    .text-gradient-hero,
+    .text-gradient-emerald,
+    .text-gradient-forest,
+    .hero-headline {
+      background: none;
+      -webkit-text-fill-color: currentColor;
+      color: #1C1917; /* gray-900 for high contrast */
+    }
+  }
+  
+  /* Icon contrast utilities - minimum 3:1 ratio */
+  .icon-contrast-light {
+    color: #44403C; /* gray-700 - 3:1+ on white */
+  }
+  
+  .icon-contrast-dark {
+    color: #F5F5F4; /* gray-100 - 3:1+ on dark */
+  }
+  
+  /* Ensure glass card text has sufficient contrast */
+  .glass-light .text-gray-600 {
+    color: #57534E; /* Darker gray-600 for better contrast on semi-transparent backgrounds */
+  }
+  
+  .glass-light .text-gray-700 {
+    color: #44403C; /* Ensure gray-700 maintains contrast */
+  }
+  
+  /* Badge text contrast on glass backgrounds */
+  .glass-light > * {
+    color: #292524; /* gray-800 for optimal contrast */
+  }
+}
+
+@layer base {
+  /* Enhanced focus indicators for accessibility - WCAG compliant */
+  /* Custom focus-visible styles with emerald gradient outline */
+  *:focus-visible {
+    outline: 3px solid transparent;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.5), 0 0 0 5px rgba(16, 185, 129, 0.3);
+    border-radius: 4px;
+  }
+  
+  /* Ensure buttons and links have visible focus with gradient effect */
+  button:focus-visible,
+  a:focus-visible {
+    outline: 3px solid transparent;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.6), 0 0 0 6px rgba(16, 185, 129, 0.3);
+    border-radius: inherit;
+  }
+  
+  /* Input elements with clear focus indicators */
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 3px solid rgba(5, 150, 105, 0.6);
+    outline-offset: 2px;
+    border-color: var(--color-primary-emerald);
+  }
+  
+  /* Ensure focus indicators are visible on all backgrounds */
+  /* Light backgrounds */
+  .bg-white *:focus-visible,
+  .bg-gray-50 *:focus-visible,
+  .bg-gray-100 *:focus-visible {
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.7), 0 0 0 6px rgba(16, 185, 129, 0.4);
+  }
+  
+  /* Dark backgrounds */
+  .bg-gray-800 *:focus-visible,
+  .bg-gray-900 *:focus-visible,
+  .bg-black *:focus-visible {
+    box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.8), 0 0 0 6px rgba(110, 231, 183, 0.5);
+  }
+  
+  /* Gradient backgrounds - ensure high contrast */
+  [class*="bg-gradient"] *:focus-visible {
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.9), 0 0 0 6px rgba(5, 150, 105, 0.6);
+  }
+}

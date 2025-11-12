@@ -1,0 +1,210 @@
+"""
+AI Gateway Client
+Unified client for accessing remote Ollama via ngrok API gateway
+"""
+
+import os
+import requests
+from typing import Optional, Dict, Any
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# AI Gateway configuration
+AI_GATEWAY_URL = os.getenv('AI_GATEWAY_URL', '')
+AI_GATEWAY_ENDPOINT = os.getenv('AI_GATEWAY_ENDPOINT', '/api/chat')
+AI_MODEL = os.getenv('AI_MODEL', 'gemma3:4b')
+
+# Fallback to local Ollama if gateway not configured
+OLLAMA_BASE_URL = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
+
+
+class AIGatewayClient:
+    """Client for interacting with remote AI gateway"""
+    
+    def __init__(self):
+        self.gateway_url = AI_GATEWAY_URL
+        self.endpoint = AI_GATEWAY_ENDPOINT
+        self.use_gateway = bool(self.gateway_url)
+        
+        if self.use_gateway:
+            print(f"✓ Using AI Gateway: {self.gateway_url}")
+        else:
+            print(f"⚠ AI Gateway not configured, using local Ollama: {OLLAMA_BASE_URL}")
+    
+    def generate(
+        self,
+        prompt: str,
+        model: str = AI_MODEL,
+        max_tokens: int = 500,
+        temperature: float = 0.7,
+        timeout: int = 90
+    ) -> str:
+        """
+        Generate text using AI model via gateway or local Ollama
+        
+        Args:
+            prompt: The prompt to send to the model
+            model: Model name to use
+            max_tokens: Maximum tokens to generate
+            temperature: Sampling temperature (0-1)
+            timeout: Request timeout in seconds
+            
+        Returns:
+            Generated text response
+        """
+        if self.use_gateway:
+            return self._call_gateway(prompt, model, max_tokens, temperature, timeout)
+        else:
+            return self._call_local_ollama(prompt, model, max_tokens, temperature, timeout)
+    
+    def _call_gateway(
+        self,
+        prompt: str,
+        model: str,
+        max_tokens: int,
+        temperature: float,
+        timeout: int
+    ) -> str:
+        """Call remote AI gateway"""
+        try:
+            url = f"{self.gateway_url}{self.endpoint}"
+            
+            # Request body format for your ngrok gateway
+            payload = {
+                "model": model,
+                "prompt": prompt,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+                "stream": False
+            }
+            
+            response = requests.post(
+                url,
+                json=payload,
+                timeout=timeout,
+                headers={
+                    "Content-Type": "application/json"
+                }
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                # Adjust based on your API response format
+                return result.get('response', result.get('text', '')).strip()
+            else:
+                raise Exception(f"AI Gateway error: {response.status_code} - {response.text}")
+                
+        except requests.Timeout:
+            raise Exception("AI Gateway request timeout")
+        except Exception as e:
+            raise Exception(f"AI Gateway call failed: {e}")
+    
+    def _call_local_ollama(
+        self,
+        prompt: str,
+        model: str,
+        max_tokens: int,
+        temperature: float,
+        timeout: int
+    ) -> str:
+        """Fallback to local Ollama"""
+        try:
+            response = requests.post(
+                f"{OLLAMA_BASE_URL}/api/generate",
+                json={
+                    "model": model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": temperature,
+                        "top_p": 0.9,
+                        "num_predict": max_tokens,
+                        "num_ctx": 2048
+                    }
+                },
+                timeout=timeout
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                return result.get('response', '').strip()
+            else:
+                raise Exception(f"Ollama API error: {response.status_code}")
+                
+        except requests.Timeout:
+            raise Exception("Ollama request timeout")
+        except Exception as e:
+            raise Exception(f"Ollama call failed: {e}")
+    
+    def check_availability(self) -> bool:
+        """Check if AI service is available"""
+        if self.use_gateway:
+            return self._check_gateway_availability()
+        else:
+            return self._check_ollama_availability()
+    
+    def _check_gateway_availability(self) -> bool:
+        """Check if AI gateway is accessible"""
+        try:
+            # Try a simple health check or minimal request
+            response = requests.get(
+                f"{self.gateway_url}/health",
+                timeout=5
+            )
+            return response.status_code == 200
+        except Exception:
+            # If no health endpoint, try the main endpoint with minimal payload
+            try:
+                response = requests.post(
+                    f"{self.gateway_url}{self.endpoint}",
+                    json={
+                        "model": AI_MODEL,
+                        "prompt": "test",
+                        "max_tokens": 1
+                    },
+                    timeout=5
+                )
+                return response.status_code in [200, 400]  # 400 means endpoint exists
+            except Exception:
+                return False
+    
+    def _check_ollama_availability(self) -> bool:
+        """Check if local Ollama is available"""
+        try:
+            response = requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=2)
+            return response.status_code == 200
+        except Exception:
+            return False
+
+
+# Global client instance
+ai_client = AIGatewayClient()
+
+
+def generate_text(
+    prompt: str,
+    model: str = AI_MODEL,
+    max_tokens: int = 500,
+    temperature: float = 0.7,
+    timeout: int = 90
+) -> str:
+    """
+    Convenience function to generate text using the AI client
+    
+    Args:
+        prompt: The prompt to send
+        model: Model to use (defaults to insights model)
+        max_tokens: Maximum tokens to generate
+        temperature: Sampling temperature
+        timeout: Request timeout
+        
+    Returns:
+        Generated text
+    """
+    return ai_client.generate(prompt, model, max_tokens, temperature, timeout)
+
+
+def check_ai_available() -> bool:
+    """Check if AI service is available"""
+    return ai_client.check_availability()
