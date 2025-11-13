@@ -19,6 +19,13 @@ import {
 } from '@/lib/optimization/error-handler'
 import { globalOperationTracker } from '@/lib/utils/debounce'
 import { optimizedResumeQueryOptimizer } from '@/lib/db/query-optimizer'
+import {
+  autoFixOrchestrator,
+  type AutoFixOptions,
+  type AutoFixResult,
+  type ProgressStep,
+  AutoFixErrorType
+} from '@/lib/autofix/auto-fix-orchestrator'
 
 /**
  * Optimization state interface
@@ -43,6 +50,18 @@ interface OptimizationState {
     estimatedTimeRemaining?: number
   }
   
+  // Auto-fix progress tracking
+  autoFixProgress: {
+    steps: ProgressStep[]
+    currentStep: number
+    percentage: number
+    estimatedTimeRemaining?: number
+    isRunning: boolean
+  }
+  
+  // Auto-fix result
+  autoFixResult: AutoFixResult | null
+  
   // Version history
   versions: OptimizedResume[]
   
@@ -55,8 +74,11 @@ interface OptimizationState {
  * Optimization actions interface
  */
 interface OptimizationActions {
-  // Auto fix
+  // Auto fix (legacy - uses old orchestrator)
   runAutoFix: (analysisId: number, templateId: string) => Promise<OptimizationResult>
+  
+  // Auto fix (new - uses AutoFixOrchestrator)
+  runAutoFixWorkflow: (analysisId: number, options?: AutoFixOptions) => Promise<AutoFixResult>
   
   // Export
   exportToPDF: (optimizedResumeId: number) => Promise<void>
@@ -76,6 +98,7 @@ interface OptimizationActions {
   setError: (error: string | null) => void
   setOptimizationError: (error: OptimizationError | null) => void
   clearError: () => void
+  clearAutoFixProgress: () => void
   reset: () => void
 }
 
@@ -95,6 +118,14 @@ const initialState: OptimizationState = {
     message: '',
     estimatedTimeRemaining: undefined
   },
+  autoFixProgress: {
+    steps: [],
+    currentStep: 0,
+    percentage: 0,
+    estimatedTimeRemaining: undefined,
+    isRunning: false
+  },
+  autoFixResult: null,
   versions: [],
   error: null
 }
@@ -109,7 +140,7 @@ export const useOptimizationStore = create<OptimizationState & OptimizationActio
       ...initialState,
 
       // ============================================================================
-      // Auto Fix
+      // Auto Fix (Legacy)
       // ============================================================================
 
       runAutoFix: async (analysisId, templateId) => {
@@ -195,6 +226,154 @@ export const useOptimizationStore = create<OptimizationState & OptimizationActio
               appliedFixes: 0,
               success: false,
               errors: [optimizationError.userMessage]
+            }
+          }
+        })
+      },
+
+      // ============================================================================
+      // Auto Fix Workflow (New - uses AutoFixOrchestrator)
+      // ============================================================================
+
+      runAutoFixWorkflow: async (analysisId, options = {}) => {
+        const { setError, setOptimizationError, clearAutoFixProgress } = get()
+        
+        // Use operation tracker to prevent duplicate operations
+        const operationKey = `autofix_workflow_${analysisId}_${options.templateId || 'default'}`
+        
+        return globalOperationTracker.execute(operationKey, async () => {
+          try {
+            // Clear previous progress and errors
+            clearAutoFixProgress()
+            set({ 
+              error: null,
+              optimizationError: null,
+              autoFixResult: null
+            })
+            
+            // Set up progress callback
+            const progressCallback = (
+              steps: ProgressStep[],
+              currentStep: number,
+              percentage: number,
+              estimatedTimeRemaining?: number
+            ) => {
+              set({
+                autoFixProgress: {
+                  steps,
+                  currentStep,
+                  percentage,
+                  estimatedTimeRemaining,
+                  isRunning: true
+                }
+              })
+            }
+            
+            // Run auto-fix workflow with progress tracking
+            const result = await autoFixOrchestrator.runAutoFix(analysisId, {
+              ...options,
+              onProgress: progressCallback
+            })
+            
+            // Check if workflow succeeded
+            if (!result.success) {
+              throw new Error(result.error || 'Auto-fix workflow failed')
+            }
+            
+            // Load the optimized resume from IndexedDB
+            if (result.optimizedResumeId) {
+              const optimizedResume = await getOptimizedResumeById(result.optimizedResumeId)
+              if (optimizedResume) {
+                set({ currentOptimizedResume: optimizedResume })
+                
+                // Load version history
+                await get().loadVersionHistory(analysisId)
+                
+                // Invalidate cache for this analysis
+                optimizedResumeQueryOptimizer.invalidateCacheForAnalysis(analysisId)
+              }
+            }
+            
+            // Store result and mark as complete
+            set({ 
+              autoFixResult: result,
+              autoFixProgress: {
+                ...get().autoFixProgress,
+                isRunning: false,
+                percentage: 100
+              }
+            })
+            
+            return result
+            
+          } catch (error: any) {
+            console.error('Auto-fix workflow failed:', error)
+            
+            // Determine error type
+            let errorType = AutoFixErrorType.NETWORK_ERROR
+            if (error.type && Object.values(AutoFixErrorType).includes(error.type)) {
+              errorType = error.type
+            }
+            
+            // Create user-friendly error message
+            let userMessage = 'Auto-fix failed. Please try again.'
+            switch (errorType) {
+              case AutoFixErrorType.DATA_RETRIEVAL_ERROR:
+                userMessage = 'Unable to retrieve analysis data. Please re-run the analysis.'
+                break
+              case AutoFixErrorType.OPTIMIZATION_ERROR:
+                userMessage = 'Content optimization failed. The AI service may be temporarily unavailable.'
+                break
+              case AutoFixErrorType.PDF_GENERATION_ERROR:
+                userMessage = 'PDF generation failed. You can still download the optimized content.'
+                break
+              case AutoFixErrorType.STORAGE_ERROR:
+                userMessage = 'Unable to save results. Your browser storage may be full.'
+                break
+              case AutoFixErrorType.VALIDATION_ERROR:
+                userMessage = 'Optimized content failed validation. Please review the issues.'
+                break
+              case AutoFixErrorType.TIMEOUT_ERROR:
+                userMessage = 'Request timed out. Please check your connection and try again.'
+                break
+            }
+            
+            // Handle error with optimization error handler
+            const optimizationError = handleOptimizationError(error, 'Auto Fix Workflow')
+            setOptimizationError(optimizationError)
+            setError(userMessage)
+            
+            // Mark progress as failed
+            set({
+              autoFixProgress: {
+                ...get().autoFixProgress,
+                isRunning: false
+              },
+              autoFixResult: {
+                success: false,
+                appliedFixes: [],
+                improvements: {
+                  atsScoreImprovement: 0,
+                  keywordsAdded: 0,
+                  grammarFixesApplied: 0,
+                  contentEnhancements: 0
+                },
+                processingTime: 0,
+                error: userMessage
+              }
+            })
+            
+            return {
+              success: false,
+              appliedFixes: [],
+              improvements: {
+                atsScoreImprovement: 0,
+                keywordsAdded: 0,
+                grammarFixesApplied: 0,
+                contentEnhancements: 0
+              },
+              processingTime: 0,
+              error: userMessage
             }
           }
         })
@@ -365,6 +544,19 @@ export const useOptimizationStore = create<OptimizationState & OptimizationActio
         set({ error: null, optimizationError: null })
       },
 
+      clearAutoFixProgress: () => {
+        set({
+          autoFixProgress: {
+            steps: [],
+            currentStep: 0,
+            percentage: 0,
+            estimatedTimeRemaining: undefined,
+            isRunning: false
+          },
+          autoFixResult: null
+        })
+      },
+
       // ============================================================================
       // Reset
       // ============================================================================
@@ -442,5 +634,61 @@ export const optimizationSelectors = {
   
   // Get current region
   getCurrentRegion: (state: OptimizationState) =>
-    state.currentOptimizedResume?.region
+    state.currentOptimizedResume?.region,
+  
+  // ============================================================================
+  // Auto-Fix Selectors
+  // ============================================================================
+  
+  // Check if auto-fix is running
+  isAutoFixRunning: (state: OptimizationState) =>
+    state.autoFixProgress.isRunning,
+  
+  // Get auto-fix progress percentage
+  getAutoFixProgressPercentage: (state: OptimizationState) =>
+    state.autoFixProgress.percentage,
+  
+  // Get auto-fix progress steps
+  getAutoFixProgressSteps: (state: OptimizationState) =>
+    state.autoFixProgress.steps,
+  
+  // Get current auto-fix step
+  getCurrentAutoFixStep: (state: OptimizationState) =>
+    state.autoFixProgress.currentStep,
+  
+  // Get estimated time remaining for auto-fix
+  getAutoFixEstimatedTime: (state: OptimizationState) =>
+    state.autoFixProgress.estimatedTimeRemaining,
+  
+  // Check if auto-fix completed successfully
+  isAutoFixComplete: (state: OptimizationState) =>
+    state.autoFixResult?.success === true,
+  
+  // Check if auto-fix failed
+  isAutoFixFailed: (state: OptimizationState) =>
+    state.autoFixResult?.success === false,
+  
+  // Get auto-fix result
+  getAutoFixResult: (state: OptimizationState) =>
+    state.autoFixResult,
+  
+  // Get auto-fix improvements
+  getAutoFixImprovements: (state: OptimizationState) =>
+    state.autoFixResult?.improvements,
+  
+  // Get auto-fix applied fixes
+  getAutoFixAppliedFixes: (state: OptimizationState) =>
+    state.autoFixResult?.appliedFixes || [],
+  
+  // Get auto-fix processing time
+  getAutoFixProcessingTime: (state: OptimizationState) =>
+    state.autoFixResult?.processingTime || 0,
+  
+  // Check if auto-fix has error
+  hasAutoFixError: (state: OptimizationState) =>
+    state.autoFixResult?.error !== undefined,
+  
+  // Get auto-fix error message
+  getAutoFixErrorMessage: (state: OptimizationState) =>
+    state.autoFixResult?.error
 }

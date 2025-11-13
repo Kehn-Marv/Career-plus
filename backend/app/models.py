@@ -110,3 +110,27 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     """Response model for chat"""
     response: str
+
+
+class AutoFixRequest(BaseModel):
+    """Request model for auto-fix endpoint"""
+    resume_json: dict = Field(..., description="Original resume data as dictionary")
+    ats_issues: List[dict] = Field(default_factory=list, description="List of ATS issues identified")
+    recommendations: List[dict] = Field(default_factory=list, description="List of smart recommendations")
+    job_description: str = Field(default="", description="Target job description")
+    options: dict = Field(default_factory=dict, description="Optional configuration")
+
+
+class AutoFixResponse(BaseModel):
+    """Response model for auto-fix endpoint"""
+    optimized_resume: dict = Field(..., description="Optimized resume data")
+    applied_fixes: List[str] = Field(..., description="List of fixes that were applied")
+    improvement_metrics: dict = Field(..., description="Metrics showing improvements")
+    processing_time: float = Field(..., description="Time taken to process in seconds")
+
+
+class PDFGenerationRequest(BaseModel):
+    """Request model for PDF generation"""
+    resume_json: dict = Field(..., description="Resume data to convert to PDF")
+    template_id: str = Field(default="professional", description="Template ID to use")
+    options: dict = Field(default_factory=dict, description="Optional PDF generation settings")

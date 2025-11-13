@@ -66,9 +66,7 @@ function AppContent() {
       
       {/* Chat Sidebar - Lazy loaded, only rendered when opened */}
       {isOpen && (
-        <Suspense fallback={<div className="fixed inset-0 bg-black/50 z-[999] flex items-center justify-center">
-          <LoadingSpinner />
-        </div>}>
+        <Suspense fallback={null}>
           <ChatSidebar
             isOpen={isOpen}
             onClose={closeSidebar}

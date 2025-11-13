@@ -36,6 +36,27 @@ class AppConfig:
         # Rate Limiting
         self.rate_limit_enabled = os.getenv('RATE_LIMIT_ENABLED', 'true').lower() == 'true'
         self.max_requests_per_minute = int(os.getenv('MAX_REQUESTS_PER_MINUTE', '10'))
+        
+        # WeasyPrint and PDF Generation Configuration
+        self.weasyprint_cache_dir = os.getenv('WEASYPRINT_CACHE_DIR', './cache/weasyprint')
+        self.template_dir = os.getenv('TEMPLATE_DIR', './app/templates')
+        self.max_pdf_size_mb = int(os.getenv('MAX_PDF_SIZE_MB', '10'))
+        self.pdf_generation_timeout = int(os.getenv('PDF_GENERATION_TIMEOUT', '30'))
+        
+        # Ensure cache directory exists
+        self._ensure_cache_directory()
+    
+    def _ensure_cache_directory(self) -> None:
+        """
+        Ensure cache directory exists for WeasyPrint
+        Creates the directory if it doesn't exist
+        """
+        import pathlib
+        cache_path = pathlib.Path(self.weasyprint_cache_dir)
+        try:
+            cache_path.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            print(f'⚠️  Warning: Could not create cache directory {self.weasyprint_cache_dir}: {e}')
     
     def validate(self) -> None:
         """
@@ -67,6 +88,19 @@ class AppConfig:
         if self.max_requests_per_minute <= 0:
             errors.append('MAX_REQUESTS_PER_MINUTE must be a positive number')
         
+        # Validate PDF generation configuration
+        if self.max_pdf_size_mb <= 0:
+            errors.append('MAX_PDF_SIZE_MB must be a positive number')
+        
+        if self.pdf_generation_timeout <= 0:
+            errors.append('PDF_GENERATION_TIMEOUT must be a positive number')
+        
+        # Validate template directory exists
+        import pathlib
+        template_path = pathlib.Path(self.template_dir)
+        if not template_path.exists():
+            warnings.append(f'Template directory {self.template_dir} does not exist. PDF generation may fail.')
+        
         # Optional: Hugging Face Token
         if not self.hf_token:
             warnings.append('HF_TOKEN is not set. Hugging Face features will be unavailable.')
@@ -96,6 +130,11 @@ class AppConfig:
         print(f'   - Rate Limiting: {"Enabled" if self.rate_limit_enabled else "Disabled"}')
         print(f'   - Max Requests/Min: {self.max_requests_per_minute}')
         print(f'   - CORS Origins: {self.cors_origins}')
+        print('\n✓ PDF Generation Configuration:')
+        print(f'   - Template Directory: {self.template_dir}')
+        print(f'   - Cache Directory: {self.weasyprint_cache_dir}')
+        print(f'   - Max PDF Size: {self.max_pdf_size_mb}MB')
+        print(f'   - Generation Timeout: {self.pdf_generation_timeout}s')
         print()
 
 

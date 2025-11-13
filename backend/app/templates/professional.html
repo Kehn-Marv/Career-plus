@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ resume.name or 'Professional Resume' }}</title>
+</head>
+<body>
+    <div class="resume-container">
+        <!-- Header -->
+        <header class="resume-header">
+            <h1 class="name">{{ resume.name or 'Your Name' }}</h1>
+            {% if resume.contact %}
+            <div class="contact-info">
+                {% if resume.contact.email %}
+                <span class="contact-item">{{ resume.contact.email }}</span>
+                {% endif %}
+                {% if resume.contact.phone %}
+                <span class="contact-item">{{ resume.contact.phone }}</span>
+                {% endif %}
+                {% if resume.contact.location %}
+                <span class="contact-item">{{ resume.contact.location }}</span>
+                {% endif %}
+                {% if resume.contact.linkedin %}
+                <span class="contact-item">{{ resume.contact.linkedin }}</span>
+                {% endif %}
+            </div>
+            {% endif %}
+        </header>
+
+        <!-- Professional Summary -->
+        {% if resume.summary %}
+        <section class="section">
+            <h2 class="section-title">Professional Summary</h2>
+            <p class="summary-text">{{ resume.summary }}</p>
+        </section>
+        {% endif %}
+
+        <!-- Experience -->
+        {% if resume.experience %}
+        <section class="section">
+            <h2 class="section-title">Professional Experience</h2>
+            {% for job in resume.experience %}
+            <div class="experience-item">
+                <div class="experience-header">
+                    <h3 class="job-title">{{ job.title }}</h3>
+                    <span class="job-dates">{{ job.dates }}</span>
+                </div>
+                <div class="company-info">
+                    <span class="company-name">{{ job.company }}</span>
+                    {% if job.location %}
+                    <span class="job-location">{{ job.location }}</span>
+                    {% endif %}
+                </div>
+                {% if job.description %}
+                <ul class="job-description">
+                {% for item in job.description %}
+                    <li>{{ item }}</li>
+                {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        <!-- Education -->
+        {% if resume.education %}
+        <section class="section">
+            <h2 class="section-title">Education</h2>
+            {% for edu in resume.education %}
+            <div class="education-item">
+                <div class="education-header">
+                    <h3 class="degree">{{ edu.degree }}</h3>
+                    <span class="edu-dates">{{ edu.dates }}</span>
+                </div>
+                <div class="institution-info">
+                    <span class="institution">{{ edu.institution }}</span>
+                    {% if edu.location %}
+                    <span class="edu-location">{{ edu.location }}</span>
+                    {% endif %}
+                </div>
+                {% if edu.gpa %}
+                <p class="gpa">GPA: {{ edu.gpa }}</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        <!-- Skills -->
+        {% if resume.skills %}
+        <section class="section">
+            <h2 class="section-title">Skills</h2>
+            <div class="skills-list">
+                {% for skill in resume.skills %}
+                <span class="skill-item">{{ skill }}</span>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Certifications -->
+        {% if resume.certifications %}
+        <section class="section">
+            <h2 class="section-title">Certifications</h2>
+            <ul class="certifications-list">
+            {% for cert in resume.certifications %}
+                <li>{{ cert }}</li>
+            {% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+    </div>
+</body>
+</html>

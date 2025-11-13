@@ -77,16 +77,44 @@ export function ExportPDFButton({
         return
       }
       
-      // Export to PDF
-      await exportToPDF(state.currentOptimizedResume.id!)
+      // Check if PDF blob exists in IndexedDB
+      const { getPDFBlobByOptimizedResumeId } = await import('@/lib/db/optimized-resume-operations')
+      const pdfBlob = await getPDFBlobByOptimizedResumeId(state.currentOptimizedResume.id!)
       
-      // Show success message
-      setShowSuccess(true)
-      ariaAnnouncer.announceSuccess('PDF exported successfully')
-      setTimeout(() => setShowSuccess(false), 3000)
-      
-      // Success callback
-      onExportComplete?.()
+      if (pdfBlob) {
+        // PDF exists in IndexedDB - download it directly
+        const url = URL.createObjectURL(pdfBlob.blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = pdfBlob.filename
+        
+        // Trigger download
+        document.body.appendChild(link)
+        link.click()
+        
+        // Cleanup
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+        
+        // Show success message
+        setShowSuccess(true)
+        ariaAnnouncer.announceSuccess('PDF downloaded successfully')
+        setTimeout(() => setShowSuccess(false), 3000)
+        
+        // Success callback
+        onExportComplete?.()
+      } else {
+        // No PDF in IndexedDB - generate new one using store method
+        await exportToPDF(state.currentOptimizedResume.id!)
+        
+        // Show success message
+        setShowSuccess(true)
+        ariaAnnouncer.announceSuccess('PDF exported successfully')
+        setTimeout(() => setShowSuccess(false), 3000)
+        
+        // Success callback
+        onExportComplete?.()
+      }
       
     } catch (error: any) {
       console.error('PDF export failed:', error)
@@ -227,11 +255,34 @@ export function ExportPDFButtonCompact({
         return
       }
       
-      // Export to PDF
-      await exportToPDF(state.currentOptimizedResume.id!)
+      // Check if PDF blob exists in IndexedDB
+      const { getPDFBlobByOptimizedResumeId } = await import('@/lib/db/optimized-resume-operations')
+      const pdfBlob = await getPDFBlobByOptimizedResumeId(state.currentOptimizedResume.id!)
       
-      // Success callback
-      onExportComplete?.()
+      if (pdfBlob) {
+        // PDF exists in IndexedDB - download it directly
+        const url = URL.createObjectURL(pdfBlob.blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = pdfBlob.filename
+        
+        // Trigger download
+        document.body.appendChild(link)
+        link.click()
+        
+        // Cleanup
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+        
+        // Success callback
+        onExportComplete?.()
+      } else {
+        // No PDF in IndexedDB - generate new one using store method
+        await exportToPDF(state.currentOptimizedResume.id!)
+        
+        // Success callback
+        onExportComplete?.()
+      }
       
     } catch (error: any) {
       console.error('PDF export failed:', error)

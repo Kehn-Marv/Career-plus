@@ -23,7 +23,7 @@ export function ChatInterface({ analysisId }: ChatInterfaceProps) {
   const [contextPrompts, setContextPrompts] = useState<string[]>([])
   const [showClearDialog, setShowClearDialog] = useState(false)
   const [isClearing, setIsClearing] = useState(false)
-  const [isInitializing, setIsInitializing] = useState(true)
+  const [isInitializing, setIsInitializing] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<any>(null)
@@ -52,20 +52,26 @@ export function ChatInterface({ analysisId }: ChatInterfaceProps) {
   // Set current analysis on mount and load context-aware prompts
   useEffect(() => {
     const initialize = async () => {
+      // Only show loading state if we have an analysisId to load
+      if (!analysisId) {
+        setIsInitializing(false)
+        return
+      }
+      
       setIsInitializing(true)
       
-      // Set initialization timeout (5 seconds)
+      // Set initialization timeout (2 seconds - reduced from 5)
       initTimeoutRef.current = setTimeout(() => {
         console.warn('Chat initialization timeout reached')
         setIsInitializing(false)
-      }, 5000)
+      }, 2000)
       
       try {
-        if (analysisId) {
-          setCurrentAnalysis(analysisId)
-          await loadContextAwarePrompts(analysisId)
-          await checkStorageQuota()
-        }
+        setCurrentAnalysis(analysisId)
+        await Promise.all([
+          loadContextAwarePrompts(analysisId),
+          checkStorageQuota()
+        ])
       } catch (error) {
         console.error('Failed to initialize chat:', error)
       } finally {
@@ -75,14 +81,13 @@ export function ChatInterface({ analysisId }: ChatInterfaceProps) {
           initTimeoutRef.current = null
         }
         
-        // Small delay to ensure smooth transition
-        setTimeout(() => {
-          setIsInitializing(false)
-          // Focus input field when ready
-          if (inputRef.current && analysisId) {
-            inputRef.current.focus()
-          }
-        }, 100)
+        // Immediate transition - no artificial delay
+        setIsInitializing(false)
+        
+        // Focus input field when ready
+        if (inputRef.current) {
+          setTimeout(() => inputRef.current?.focus(), 50)
+        }
       }
     }
     
