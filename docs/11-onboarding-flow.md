@@ -12,6 +12,41 @@
 
 ## 📋 Onboarding Journey
 
+### Complete Onboarding Flow
+
+```mermaid
+graph TB
+    START([User Lands on Site])
+    WELCOME[Welcome Screen]
+    UPLOAD[Upload Resume]
+    PROCESS[Processing & Analysis]
+    RESULTS[Results Reveal]
+    TOUR[Feature Tour]
+    ACTION[First Action Prompt]
+    SUCCESS[First Success]
+    EXPLORE[Explore Features]
+    END([Onboarding Complete])
+    
+    START --> WELCOME
+    WELCOME -->|30s| UPLOAD
+    UPLOAD -->|1min| PROCESS
+    PROCESS -->|30s| RESULTS
+    RESULTS -->|1min| TOUR
+    TOUR -->|2min| ACTION
+    ACTION -->|Variable| SUCCESS
+    SUCCESS --> EXPLORE
+    EXPLORE --> END
+    
+    %% Styling
+    classDef start fill:#e8f5e8,stroke:#4caf50,stroke-width:3px
+    classDef step fill:#e1f5fe,stroke:#0288d1
+    classDef success fill:#e8f5e8,stroke:#4caf50,stroke-width:2px
+    
+    class START,END start
+    class WELCOME,UPLOAD,PROCESS,RESULTS,TOUR,ACTION,EXPLORE step
+    class SUCCESS success
+```
+
 ### Step 1: Landing & Welcome (30 seconds)
 
 ```

@@ -2,6 +2,84 @@
 
 ## 📊 Database Schema (IndexedDB)
 
+### Entity Relationship Diagram
+
+```mermaid
+erDiagram
+    RESUMES ||--o{ VERSIONS : has
+    RESUMES ||--o{ ANALYSIS : has
+    RESUMES ||--o{ CHAT_MESSAGES : has
+    RESUMES ||--o{ BIAS_REPORTS : has
+    CHAT_MESSAGES }o--|| CONVERSATIONS : belongs_to
+    
+    RESUMES {
+        string id PK
+        string fileName
+        string fileType
+        number fileSize
+        string rawText
+        json parsedData
+        date uploadedAt
+        date lastModified
+        array tags
+        boolean isFavorite
+    }
+    
+    VERSIONS {
+        string id PK
+        string resumeId FK
+        number versionNumber
+        json content
+        array changes
+        date createdAt
+        string createdBy
+        string description
+    }
+    
+    ANALYSIS {
+        string id PK
+        string resumeId FK
+        string versionId FK
+        number atsScore
+        number biasScore
+        json insights
+        array recommendations
+        array keywordMatches
+        array missingKeywords
+        json sectionsFound
+        date analyzedAt
+    }
+    
+    CHAT_MESSAGES {
+        string id PK
+        string resumeId FK
+        string conversationId FK
+        string role
+        string content
+        date timestamp
+        json metadata
+    }
+    
+    CONVERSATIONS {
+        string id PK
+        string resumeId FK
+        string title
+        date startedAt
+        date lastMessageAt
+        number messageCount
+    }
+    
+    BIAS_REPORTS {
+        string id PK
+        string resumeId FK
+        string versionId FK
+        number totalIssues
+        number biasScore
+        array issues
+        date analyzedAt
+    }
+```
+
 ### Resumes Table
 
 ```typescript
@@ -441,38 +519,80 @@ model = genai.GenerativeModel('gemini-1.5-flash')
 
 ### Resume Upload Flow
 
-```
-User uploads file
-    ↓
-Frontend validates file
-    ↓
-Frontend parses document (client-side)
-    ├─ PDF: pdfjs-dist
-    ├─ DOCX: mammoth
-    └─ TXT: direct read
-    ↓
-Extract structured data
-    ├─ Contact info (regex)
-    ├─ Sections (ML-based)
-    ├─ Dates (regex + parsing)
-    └─ Skills (keyword matching)
-    ↓
-Store in IndexedDB (Resumes table)
-    ↓
-Send to backend for analysis
-    ↓
-Backend performs:
-    ├─ ATS scoring
-    ├─ Bias detection
-    └─ Keyword extraction
-    ↓
-Backend calls AI Gateway
-    ↓
-AI generates insights
-    ↓
-Results stored in Analysis table
-    ↓
-UI updates with results
+```mermaid
+graph TB
+    START([User Uploads File])
+    VALIDATE{Validate File}
+    PARSE[Parse Document]
+    PDF[PDF Parser<br/>pdfjs-dist]
+    DOCX[DOCX Parser<br/>mammoth]
+    TXT[TXT Parser<br/>direct read]
+    EXTRACT[Extract Structured Data]
+    CONTACT[Contact Info<br/>regex]
+    SECTIONS[Sections<br/>ML-based]
+    DATES[Dates<br/>regex + parsing]
+    SKILLS[Skills<br/>keyword matching]
+    STORE_RESUME[(Store in<br/>Resumes Table)]
+    BACKEND[Send to Backend]
+    ATS[ATS Scoring]
+    BIAS[Bias Detection]
+    KEYWORDS[Keyword Extraction]
+    AI_GATEWAY[AI Gateway]
+    INSIGHTS[Generate Insights]
+    STORE_ANALYSIS[(Store in<br/>Analysis Table)]
+    UPDATE[Update UI]
+    END([Complete])
+    
+    START --> VALIDATE
+    VALIDATE -->|Valid| PARSE
+    VALIDATE -->|Invalid| START
+    
+    PARSE --> PDF
+    PARSE --> DOCX
+    PARSE --> TXT
+    
+    PDF --> EXTRACT
+    DOCX --> EXTRACT
+    TXT --> EXTRACT
+    
+    EXTRACT --> CONTACT
+    EXTRACT --> SECTIONS
+    EXTRACT --> DATES
+    EXTRACT --> SKILLS
+    
+    CONTACT --> STORE_RESUME
+    SECTIONS --> STORE_RESUME
+    DATES --> STORE_RESUME
+    SKILLS --> STORE_RESUME
+    
+    STORE_RESUME --> BACKEND
+    BACKEND --> ATS
+    BACKEND --> BIAS
+    BACKEND --> KEYWORDS
+    
+    ATS --> AI_GATEWAY
+    BIAS --> AI_GATEWAY
+    KEYWORDS --> AI_GATEWAY
+    
+    AI_GATEWAY --> INSIGHTS
+    INSIGHTS --> STORE_ANALYSIS
+    STORE_ANALYSIS --> UPDATE
+    UPDATE --> END
+    
+    %% Styling
+    classDef start fill:#e8f5e8,stroke:#4caf50,stroke-width:2px
+    classDef process fill:#e1f5fe,stroke:#0288d1
+    classDef parser fill:#fff3e0,stroke:#ff9800
+    classDef extract fill:#f3e5f5,stroke:#9c27b0
+    classDef storage fill:#e8f5e8,stroke:#4caf50
+    classDef backend fill:#ffebee,stroke:#f44336
+    
+    class START,END start
+    class VALIDATE,PARSE,EXTRACT,BACKEND,UPDATE process
+    class PDF,DOCX,TXT parser
+    class CONTACT,SECTIONS,DATES,SKILLS extract
+    class STORE_RESUME,STORE_ANALYSIS storage
+    class ATS,BIAS,KEYWORDS,AI_GATEWAY,INSIGHTS backend
 ```
 
 ### AutoFix Flow

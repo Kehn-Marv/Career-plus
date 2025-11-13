@@ -6,40 +6,68 @@ Detailed user journey mappings for Career+ platform.
 
 ### 1. First-Time User Onboarding
 
-```
-Landing Page
-    ↓
-[Upload Resume Button]
-    ↓
-File Upload Modal
-    ├─ Drag & Drop Area
-    ├─ File Browser
-    └─ Supported Formats: PDF, DOCX, TXT
-    ↓
-File Validation
-    ├─ Size check (< 10MB)
-    ├─ Format check
-    └─ Content check
-    ↓
-Parsing & Analysis (Loading State)
-    ├─ Extract text
-    ├─ Parse sections
-    ├─ Calculate ATS score
-    └─ Generate AI insights
-    ↓
-Analysis Dashboard
-    ├─ ATS Score Card
-    ├─ Radar Chart
-    ├─ AI Insights Panel
-    ├─ Recommendations List
-    └─ Action Buttons
-    ↓
-User explores features:
-    ├─ AutoFix
-    ├─ Bias Detection
-    ├─ Regional Localization
-    ├─ Template Gallery
-    └─ Chat Assistant
+```mermaid
+graph TB
+    START([User Lands on Homepage])
+    UPLOAD[Click Upload Resume]
+    MODAL[File Upload Modal]
+    DRAG[Drag & Drop Area]
+    BROWSE[File Browser]
+    VALIDATE{File Validation}
+    PARSE[Parsing & Analysis]
+    EXTRACT[Extract Text]
+    SECTIONS[Parse Sections]
+    ATS[Calculate ATS Score]
+    AI[Generate AI Insights]
+    DASHBOARD[Analysis Dashboard]
+    EXPLORE{Explore Features}
+    AUTOFIX[AutoFix]
+    BIAS[Bias Detection]
+    LOCAL[Regional Localization]
+    TEMPLATE[Template Gallery]
+    CHAT[Chat Assistant]
+    SUCCESS([Onboarding Complete])
+    
+    START --> UPLOAD
+    UPLOAD --> MODAL
+    MODAL --> DRAG
+    MODAL --> BROWSE
+    DRAG --> VALIDATE
+    BROWSE --> VALIDATE
+    
+    VALIDATE -->|Valid| PARSE
+    VALIDATE -->|Invalid| MODAL
+    
+    PARSE --> EXTRACT
+    EXTRACT --> SECTIONS
+    SECTIONS --> ATS
+    ATS --> AI
+    AI --> DASHBOARD
+    
+    DASHBOARD --> EXPLORE
+    EXPLORE --> AUTOFIX
+    EXPLORE --> BIAS
+    EXPLORE --> LOCAL
+    EXPLORE --> TEMPLATE
+    EXPLORE --> CHAT
+    
+    AUTOFIX --> SUCCESS
+    BIAS --> SUCCESS
+    LOCAL --> SUCCESS
+    TEMPLATE --> SUCCESS
+    CHAT --> SUCCESS
+    
+    %% Styling
+    classDef start fill:#e8f5e8,stroke:#4caf50,stroke-width:3px
+    classDef process fill:#e1f5fe,stroke:#0288d1
+    classDef decision fill:#fff3e0,stroke:#ff9800
+    classDef feature fill:#f3e5f5,stroke:#9c27b0
+    classDef success fill:#e8f5e8,stroke:#4caf50,stroke-width:3px
+    
+    class START,SUCCESS start
+    class UPLOAD,MODAL,DRAG,BROWSE,PARSE,EXTRACT,SECTIONS,ATS,AI,DASHBOARD process
+    class VALIDATE,EXPLORE decision
+    class AUTOFIX,BIAS,LOCAL,TEMPLATE,CHAT feature
 ```
 
 **Success Criteria:**
@@ -52,41 +80,43 @@ User explores features:
 
 ### 2. Resume Optimization Flow
 
-```
-Analysis Dashboard
-    ↓
-User reviews ATS score (e.g., 72/100)
-    ↓
-User clicks "AutoFix" button
-    ↓
-AutoFix Modal Opens
-    ├─ Shows loading state
-    ├─ "Analyzing your resume..."
-    └─ Progress indicator
-    ↓
-AI processes bullets (15-30 seconds)
-    ↓
-Before/After Comparison
-    ├─ Original bullet
-    ├─ Improved bullet
-    ├─ Changes highlighted
-    └─ [Accept] [Skip] buttons
-    ↓
-User reviews each suggestion
-    ├─ Accept: Bullet updated
-    └─ Skip: Keep original
-    ↓
-All suggestions reviewed
-    ↓
-Success message
-    ├─ "X bullets improved"
-    ├─ "New ATS score: 85/100"
-    └─ Version saved automatically
-    ↓
-Return to Analysis Dashboard
-    ├─ Updated score displayed
-    ├─ New insights generated
-    └─ Version history updated
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant D as Dashboard
+    participant M as AutoFix Modal
+    participant AI as AI Service
+    participant DB as Database
+    
+    Note over U,DB: Resume Optimization Flow
+    
+    U->>D: Review ATS Score (72/100)
+    U->>D: Click "AutoFix" Button
+    D->>M: Open Modal
+    M->>M: Show Loading State
+    M->>AI: Send Bullets for Rewriting
+    
+    Note over AI: Processing (15-30s)
+    
+    AI-->>M: Return Improved Bullets
+    M->>M: Show Before/After Comparison
+    
+    loop For Each Suggestion
+        M->>U: Display Comparison
+        alt User Accepts
+            U->>M: Click Accept
+            M->>DB: Update Bullet
+        else User Skips
+            U->>M: Click Skip
+            M->>M: Keep Original
+        end
+    end
+    
+    M->>DB: Create New Version
+    M->>D: Calculate New Score
+    D->>D: Update Dashboard (85/100)
+    D->>U: Show Success Message
+    D->>D: Update Version History
 ```
 
 **Success Criteria:**
@@ -99,44 +129,67 @@ Return to Analysis Dashboard
 
 ### 3. Bias Detection & Removal Flow
 
-```
-Analysis Dashboard
-    ↓
-User clicks "Check for Bias" button
-    ↓
-Bias Analysis Modal Opens
-    ├─ Shows loading state
-    └─ "Scanning for biased language..."
-    ↓
-Analysis completes (2-5 seconds)
-    ↓
-Bias Report Displayed
-    ├─ Total issues found: X
-    ├─ Bias score: Y/100
-    └─ Issues grouped by category:
-        ├─ Age (3 issues)
-        ├─ Gender (2 issues)
-        ├─ Race (0 issues)
-        └─ Other (1 issue)
-    ↓
-User filters by category (optional)
-    ↓
-User reviews each issue:
-    ├─ Original phrase highlighted
-    ├─ Suggested alternative
-    ├─ Reason for change
-    └─ [Apply Fix] button
-    ↓
-User applies fixes
-    ├─ One-by-one
-    └─ Or "Apply All"
-    ↓
-Success message
-    ├─ "X issues fixed"
-    ├─ "Bias score improved to: Z"
-    └─ Version saved
-    ↓
-Return to Analysis Dashboard
+```mermaid
+graph TB
+    START([Analysis Dashboard])
+    CLICK[Click Check for Bias]
+    MODAL[Bias Analysis Modal]
+    SCAN[Scanning for Biased Language]
+    ANALYZE[Analyze Text]
+    REPORT[Display Bias Report]
+    FILTER{Filter by Category?}
+    AGE[Age Issues: 3]
+    GENDER[Gender Issues: 2]
+    RACE[Race Issues: 0]
+    OTHER[Other Issues: 1]
+    REVIEW[Review Each Issue]
+    APPLY{Apply Fixes?}
+    ONE[Apply One-by-One]
+    ALL[Apply All]
+    SAVE[Save Changes]
+    VERSION[Create New Version]
+    SUCCESS[Show Success Message]
+    DASHBOARD([Return to Dashboard])
+    
+    START --> CLICK
+    CLICK --> MODAL
+    MODAL --> SCAN
+    SCAN --> ANALYZE
+    ANALYZE --> REPORT
+    REPORT --> FILTER
+    
+    FILTER -->|Yes| AGE
+    FILTER -->|Yes| GENDER
+    FILTER -->|Yes| RACE
+    FILTER -->|Yes| OTHER
+    FILTER -->|No| REVIEW
+    
+    AGE --> REVIEW
+    GENDER --> REVIEW
+    RACE --> REVIEW
+    OTHER --> REVIEW
+    
+    REVIEW --> APPLY
+    APPLY -->|Individual| ONE
+    APPLY -->|Bulk| ALL
+    
+    ONE --> SAVE
+    ALL --> SAVE
+    SAVE --> VERSION
+    VERSION --> SUCCESS
+    SUCCESS --> DASHBOARD
+    
+    %% Styling
+    classDef start fill:#e8f5e8,stroke:#4caf50,stroke-width:2px
+    classDef process fill:#e1f5fe,stroke:#0288d1
+    classDef decision fill:#fff3e0,stroke:#ff9800
+    classDef category fill:#f3e5f5,stroke:#9c27b0
+    classDef success fill:#e8f5e8,stroke:#4caf50,stroke-width:2px
+    
+    class START,DASHBOARD start
+    class CLICK,MODAL,SCAN,ANALYZE,REPORT,REVIEW,ONE,ALL,SAVE,VERSION,SUCCESS process
+    class FILTER,APPLY decision
+    class AGE,GENDER,RACE,OTHER category
 ```
 
 **Success Criteria:**
@@ -310,39 +363,50 @@ Return to Analysis Dashboard
 
 ### 7. AI Chat Assistant Flow
 
-```
-Analysis Dashboard
-    ↓
-User clicks "Chat" button
-    ↓
-Chat Interface Opens
-    ├─ Chat history (if any)
-    ├─ Input field
-    └─ Suggested questions:
-        ├─ "How can I improve my ATS score?"
-        ├─ "What skills should I add?"
-        └─ "How do I make my resume stand out?"
-    ↓
-User types question or clicks suggestion
-    ↓
-Message sent to AI
-    ├─ Shows "AI is typing..."
-    └─ Context included:
-        ├─ Resume text
-        ├─ ATS score
-        └─ Previous analysis
-    ↓
-AI responds (3-10 seconds)
-    ├─ Personalized answer
-    ├─ Specific recommendations
-    └─ Action items
-    ↓
-User can:
-    ├─ Ask follow-up questions
-    ├─ Apply suggestions
-    └─ Continue conversation
-    ↓
-Chat history saved automatically
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant C as Chat Interface
+    participant AI as AI Service
+    participant DB as Database
+    
+    Note over U,DB: AI Chat Assistant Flow
+    
+    U->>C: Click "Chat" Button
+    C->>DB: Load Chat History
+    DB-->>C: Return Previous Messages
+    C->>C: Display Suggested Questions
+    
+    alt User Types Question
+        U->>C: Type Custom Question
+    else User Clicks Suggestion
+        U->>C: Click Suggested Question
+    end
+    
+    C->>C: Show "AI is typing..."
+    C->>DB: Get Resume Context
+    DB-->>C: Resume Data & Analysis
+    C->>AI: Send Question + Context
+    
+    Note over AI: Processing (3-10s)
+    
+    AI-->>C: Stream Response
+    C->>C: Display Response
+    C->>DB: Save Message
+    C->>DB: Save Response
+    
+    loop Follow-up Questions
+        U->>C: Ask Follow-up
+        C->>AI: Send with Context
+        AI-->>C: Stream Response
+        C->>DB: Save Conversation
+    end
+    
+    alt User Applies Suggestion
+        U->>C: Apply Recommendation
+        C->>DB: Update Resume
+        C->>U: Show Success
+    end
 ```
 
 **Success Criteria:**

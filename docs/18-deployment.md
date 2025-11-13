@@ -237,7 +237,99 @@ tracer.configure(
 
 ## 🔄 CI/CD Pipeline
 
-### GitHub Actions
+### Deployment Pipeline Diagram
+
+```mermaid
+graph LR
+    subgraph "Development"
+        DEV[Developer]
+        BRANCH[Feature Branch]
+    end
+    
+    subgraph "Version Control"
+        PR[Pull Request]
+        MAIN[Main Branch]
+    end
+    
+    subgraph "CI Pipeline"
+        TEST[Run Tests]
+        LINT[Lint Code]
+        BUILD[Build App]
+    end
+    
+    subgraph "CD Pipeline"
+        DEPLOY_FE[Deploy Frontend]
+        DEPLOY_BE[Deploy Backend]
+    end
+    
+    subgraph "Production"
+        VERCEL[Vercel]
+        CLOUDRUN[Cloud Run]
+        LIVE[Live Site]
+    end
+    
+    DEV --> BRANCH
+    BRANCH --> PR
+    PR --> TEST
+    TEST --> LINT
+    LINT --> BUILD
+    BUILD -->|Approved| MAIN
+    MAIN --> DEPLOY_FE
+    MAIN --> DEPLOY_BE
+    DEPLOY_FE --> VERCEL
+    DEPLOY_BE --> CLOUDRUN
+    VERCEL --> LIVE
+    CLOUDRUN --> LIVE
+    
+    %% Styling
+    classDef dev fill:#e1f5fe,stroke:#0288d1
+    classDef vcs fill:#fff3e0,stroke:#ff9800
+    classDef ci fill:#f3e5f5,stroke:#9c27b0
+    classDef cd fill:#ffebee,stroke:#f44336
+    classDef prod fill:#e8f5e8,stroke:#4caf50
+    
+    class DEV,BRANCH dev
+    class PR,MAIN vcs
+    class TEST,LINT,BUILD ci
+    class DEPLOY_FE,DEPLOY_BE cd
+    class VERCEL,CLOUDRUN,LIVE prod
+```
+
+### GitHub Actions Workflow
+
+```mermaid
+sequenceDiagram
+    participant D as Developer
+    participant G as GitHub
+    participant CI as CI Pipeline
+    participant V as Vercel
+    participant C as Cloud Run
+    
+    Note over D,C: Continuous Deployment Flow
+    
+    D->>G: Push to main branch
+    G->>CI: Trigger Workflow
+    
+    par Frontend Deployment
+        CI->>CI: Install Dependencies
+        CI->>CI: Run Tests
+        CI->>CI: Build Frontend
+        CI->>V: Deploy to Vercel
+        V-->>CI: Deployment Success
+    and Backend Deployment
+        CI->>CI: Install Dependencies
+        CI->>CI: Run Tests
+        CI->>CI: Build Docker Image
+        CI->>C: Deploy to Cloud Run
+        C-->>CI: Deployment Success
+    end
+    
+    CI-->>G: Update Status
+    G-->>D: Notify Success
+```
+
+### GitHub Actions Configuration
+
 ```yaml
 name: Deploy
 

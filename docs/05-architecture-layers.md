@@ -4,31 +4,79 @@ Detailed breakdown of Career+ platform layers and their responsibilities.
 
 ## 🏗️ Layer Overview
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    PRESENTATION LAYER                            │
-│                  (User Interface & Experience)                   │
-└─────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                    APPLICATION LAYER                             │
-│                  (Business Logic & Workflows)                    │
-└─────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                      SERVICE LAYER                               │
-│                  (Core Services & Processing)                    │
-└─────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                       DATA LAYER                                 │
-│                  (Storage & Persistence)                         │
-└─────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                   INFRASTRUCTURE LAYER                           │
-│                  (Hosting & External Services)                   │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph "1. Presentation Layer"
+        PAGES[Pages]
+        COMPONENTS[UI Components]
+        STATE[State Management]
+        ROUTING[Routing]
+    end
+    
+    subgraph "2. Application Layer"
+        HOOKS[Custom Hooks]
+        WORKFLOWS[Workflows]
+        LOGIC[Business Logic]
+    end
+    
+    subgraph "3. Service Layer"
+        PARSERS[Document Parsers]
+        API_CLIENT[API Client]
+        AI_CLIENT[AI Services]
+        VALIDATORS[Validators]
+    end
+    
+    subgraph "4. Data Layer"
+        INDEXEDDB[(IndexedDB)]
+        CACHE[Cache Layer]
+        SYNC[Sync Manager]
+    end
+    
+    subgraph "5. Infrastructure Layer"
+        CDN[CDN/Hosting]
+        BACKEND[Backend API]
+        AI_GATEWAY[AI Gateway]
+        MONITORING[Monitoring]
+    end
+    
+    %% Layer connections
+    PAGES --> HOOKS
+    COMPONENTS --> HOOKS
+    STATE --> HOOKS
+    ROUTING --> PAGES
+    
+    HOOKS --> WORKFLOWS
+    WORKFLOWS --> LOGIC
+    
+    LOGIC --> PARSERS
+    LOGIC --> API_CLIENT
+    LOGIC --> AI_CLIENT
+    LOGIC --> VALIDATORS
+    
+    PARSERS --> INDEXEDDB
+    API_CLIENT --> CACHE
+    VALIDATORS --> INDEXEDDB
+    
+    CACHE --> INDEXEDDB
+    SYNC --> INDEXEDDB
+    
+    API_CLIENT --> BACKEND
+    AI_CLIENT --> AI_GATEWAY
+    BACKEND --> MONITORING
+    CDN --> PAGES
+    
+    %% Styling
+    classDef presentation fill:#e1f5fe
+    classDef application fill:#f3e5f5
+    classDef service fill:#fff3e0
+    classDef data fill:#e8f5e8
+    classDef infrastructure fill:#fce4ec
+    
+    class PAGES,COMPONENTS,STATE,ROUTING presentation
+    class HOOKS,WORKFLOWS,LOGIC application
+    class PARSERS,API_CLIENT,AI_CLIENT,VALIDATORS service
+    class INDEXEDDB,CACHE,SYNC data
+    class CDN,BACKEND,AI_GATEWAY,MONITORING infrastructure
 ```
 
 ---
@@ -539,80 +587,108 @@ CDN:
 
 ### Request Flow
 
-```
-User Action (Presentation)
-    ↓
-Event Handler (Presentation)
-    ↓
-Custom Hook (Application)
-    ↓
-Service Call (Service)
-    ↓
-API Request (Service)
-    ↓
-Backend Endpoint (Service)
-    ↓
-Business Logic (Application)
-    ↓
-Data Access (Data)
-    ↓
-Database Query (Data)
-    ↓
-Response (reverse flow)
+```mermaid
+sequenceDiagram
+    participant P as Presentation Layer
+    participant A as Application Layer
+    participant S as Service Layer
+    participant D as Data Layer
+    participant I as Infrastructure Layer
+    
+    Note over P,I: Typical Request Flow
+    
+    P->>P: User Action (Click Button)
+    P->>A: Event Handler Triggered
+    A->>A: Custom Hook Called
+    A->>S: Service Call
+    S->>I: API Request
+    I->>I: Backend Processing
+    I-->>S: API Response
+    S->>D: Store Data
+    D-->>S: Confirmation
+    S-->>A: Return Result
+    A-->>P: Update State
+    P->>P: Re-render UI
 ```
 
 ### Example: AutoFix Flow
 
-```
-1. User clicks "AutoFix" button
-   Layer: Presentation (Button component)
-
-2. onClick handler triggered
-   Layer: Presentation (Event handler)
-
-3. useAutoFix hook called
-   Layer: Application (Custom hook)
-
-4. API request sent
-   Layer: Service (HTTP client)
-
-5. Backend receives request
-   Layer: Service (FastAPI endpoint)
-
-6. AI Gateway called
-   Layer: Service (AI client)
-
-7. Results processed
-   Layer: Application (Business logic)
-
-8. Data saved to IndexedDB
-   Layer: Data (Database operation)
-
-9. UI updated with results
-   Layer: Presentation (Component re-render)
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant P as Presentation<br/>(Button Component)
+    participant A as Application<br/>(useAutoFix Hook)
+    participant S as Service<br/>(API Client)
+    participant B as Backend<br/>(FastAPI)
+    participant AI as AI Gateway
+    participant D as Data<br/>(IndexedDB)
+    
+    Note over U,D: AutoFix Complete Flow
+    
+    U->>P: Click "AutoFix" Button
+    P->>A: onClick Handler
+    A->>A: Extract Bullets
+    A->>S: Call API Client
+    S->>B: POST /api/rewrite-batch
+    B->>AI: Request Rewrite
+    AI-->>B: Rewritten Bullets
+    B-->>S: Return Results
+    S-->>A: Process Response
+    A->>D: Save Updated Resume
+    A->>D: Create New Version
+    D-->>A: Confirmation
+    A-->>P: Update State
+    P->>P: Re-render with Results
+    P-->>U: Show Success Message
 ```
 
 ---
 
 ## 📊 Layer Dependencies
 
-```
-Presentation Layer
-    ↓ depends on
-Application Layer
-    ↓ depends on
-Service Layer
-    ↓ depends on
-Data Layer
-    ↓ depends on
-Infrastructure Layer
+```mermaid
+graph TB
+    PRES[Presentation Layer<br/>Pages, Components, UI]
+    APP[Application Layer<br/>Hooks, Workflows, Logic]
+    SERV[Service Layer<br/>Parsers, API, Validators]
+    DATA[Data Layer<br/>IndexedDB, Cache]
+    INFRA[Infrastructure Layer<br/>CDN, Backend, AI]
+    
+    PRES -->|depends on| APP
+    PRES -.->|can skip to| SERV
+    APP -->|depends on| SERV
+    SERV -->|depends on| DATA
+    SERV -->|depends on| INFRA
+    DATA -->|depends on| INFRA
+    
+    %% Styling
+    classDef layer fill:#e1f5fe,stroke:#0288d1,stroke-width:2px
+    class PRES,APP,SERV,DATA,INFRA layer
 ```
 
-**Rules:**
+**Dependency Rules:**
 - ✅ Upper layers can depend on lower layers
 - ❌ Lower layers cannot depend on upper layers
 - ✅ Layers can skip levels (e.g., Presentation → Service)
 - ✅ Use dependency injection for flexibility
+
+```mermaid
+graph LR
+    subgraph "✅ Allowed Dependencies"
+        A1[Upper Layer] --> B1[Lower Layer]
+        A2[Layer 1] -.->|Skip Level| C2[Layer 3]
+    end
+    
+    subgraph "❌ Not Allowed"
+        B3[Lower Layer] -.x|Cannot depend| A3[Upper Layer]
+    end
+    
+    classDef allowed fill:#e8f5e8,stroke:#4caf50
+    classDef notAllowed fill:#ffebee,stroke:#f44336
+    
+    class A1,B1,A2,C2 allowed
+    class A3,B3 notAllowed
+```
 
 ---
 
