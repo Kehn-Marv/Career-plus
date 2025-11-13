@@ -42,7 +42,6 @@ export function FloatingChatButton({
       aria-label={isOpen ? 'Close chat assistant' : 'Open chat assistant'}
       aria-expanded={isOpen}
       className={`
-        fixed bottom-6 right-6 z-[1000]
         flex items-center justify-center
         w-12 h-12 md:w-14 md:h-14
         bg-gradient-to-br from-blue-600 to-blue-700

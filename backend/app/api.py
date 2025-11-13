@@ -207,3 +207,40 @@ async def chat_endpoint(request: Request, payload: ChatRequest):
 async def health_check():
     """Health check endpoint"""
     return {"status": "healthy", "timestamp": time.time()}
+
+
+@router.get("/ai-status")
+async def ai_status():
+    """
+    Check availability of AI services
+    
+    Returns status of Gemini API and model information
+    """
+    try:
+        from .gemini_client import check_ai_available, GEMINI_MODEL
+        
+        gemini_available = check_ai_available()
+        
+        # Log the status for debugging
+        if gemini_available:
+            print(f"[AI Status] ✓ Gemini API available (model: {GEMINI_MODEL})")
+        else:
+            print("[AI Status] ✗ Gemini API unavailable")
+        
+        return {
+            "gemini": {
+                "available": gemini_available,
+                "model": GEMINI_MODEL if gemini_available else None
+            },
+            "timestamp": time.time()
+        }
+    except Exception as e:
+        print(f"[AI Status] Error checking AI status: {e}")
+        return {
+            "gemini": {
+                "available": False,
+                "model": None,
+                "error": str(e)
+            },
+            "timestamp": time.time()
+        }

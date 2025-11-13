@@ -6,6 +6,7 @@ import OfflineIndicator from '@/components/ui/OfflineIndicator'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { FloatingChatButton } from '@/components/chat/FloatingChatButton'
+import FloatingButtonGroup from '@/components/layout/FloatingButtonGroup'
 import { useChatStore } from '@/store/chat-store'
 import { useAnalysisStore } from '@/store/analysis-store'
 
@@ -51,15 +52,17 @@ function AppContent() {
           <Route path="/history" element={<History />} />
         </Routes>
       </Suspense>
-      <KeyboardShortcutsHelp />
       <OfflineIndicator />
       
-      {/* Floating Chat Button - Always visible */}
-      <FloatingChatButton
-        onClick={toggleSidebar}
-        isOpen={isOpen}
-        unreadCount={0}
-      />
+      {/* Floating action buttons - Grouped for proper positioning */}
+      <FloatingButtonGroup>
+        <KeyboardShortcutsHelp />
+        <FloatingChatButton
+          onClick={toggleSidebar}
+          isOpen={isOpen}
+          unreadCount={0}
+        />
+      </FloatingButtonGroup>
       
       {/* Chat Sidebar - Lazy loaded, only rendered when opened */}
       {isOpen && (

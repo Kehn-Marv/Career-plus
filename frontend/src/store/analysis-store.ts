@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import type { Resume, JobDescription, Analysis } from '@/lib/db'
 import { resumeOps, jobDescriptionOps, analysisOps } from '@/lib/db'
+import { ProgressManager, PROGRESS_STAGES } from '@/lib/analysis/progress-manager'
 
 /**
  * Analysis state interface
@@ -146,11 +147,17 @@ export const useAnalysisStore = create<AnalysisState & AnalysisActions>()(
       runAnalysis: async (resumeId, jdId) => {
         const { updateProgress, updateCapabilities, setError } = get()
         
+        // Initialize progress manager
+        const progressManager = new ProgressManager((progress) => {
+          updateProgress(progress.stage, progress.percentage, progress.message, progress.estimatedTimeRemaining)
+        })
+        
         try {
           set({ isAnalyzing: true, error: null })
           
-          // Detect capabilities
-          updateProgress('parsing', 5, 'Detecting analysis capabilities...', 60)
+          // Stage 1: Parsing - Detect capabilities and load data
+          progressManager.startStage(PROGRESS_STAGES[0], 'Detecting analysis capabilities...')
+          
           try {
             const { detectCapabilities } = await import('@/lib/analysis/analysis-orchestrator')
             const capabilities = await detectCapabilities()
@@ -159,8 +166,8 @@ export const useAnalysisStore = create<AnalysisState & AnalysisActions>()(
             console.warn('Failed to detect capabilities, using defaults')
           }
           
-          // Step 1: Load resume and JD
-          updateProgress('parsing', 10, 'Loading resume and job description...', 55)
+          // Load resume and JD
+          progressManager.updateMessage('Loading resume and job description...')
           
           const [resume, jd] = await Promise.all([
             resumeOps.get(resumeId),
@@ -172,9 +179,29 @@ export const useAnalysisStore = create<AnalysisState & AnalysisActions>()(
           }
           
           set({ currentResume: resume, currentJobDescription: jd })
+          progressManager.completeStage()
           
-          // Step 2: Generate embeddings (with fallback)
-          updateProgress('embedding', 30, 'Generating semantic embeddings...', 45)
+          // Stage 2: Keyword Analysis
+          progressManager.startStage(PROGRESS_STAGES[1], 'Performing keyword analysis...')
+          
+          // Convert Resume to ParsedResume format
+          const parsedResume = {
+            ...resume,
+            detectedSections: [],
+            yearsOfExperience: 0
+          }
+          
+          // Convert JobDescription to ParsedJobDescription format
+          const parsedJD = {
+            ...jd,
+            detectedSections: []
+          }
+          
+          progressManager.completeStage()
+          
+          // Stage 3: Semantic Analysis - Generate embeddings
+          progressManager.startStage(PROGRESS_STAGES[2], 'Generating semantic embeddings...')
+          
           let resumeEmbedding: number[] = []
           let jdEmbedding: number[] = []
           
@@ -194,8 +221,10 @@ export const useAnalysisStore = create<AnalysisState & AnalysisActions>()(
             jdEmbedding = new Array(384).fill(0)
           }
           
-          // Step 3: Calculate scores with progressive enhancement
-          updateProgress('scoring', 40, 'Analyzing resume...', 30)
+          progressManager.completeStage()
+          
+          // Stage 4: Format Analysis - Calculate scores
+          progressManager.startStage(PROGRESS_STAGES[3], 'Analyzing resume format and structure...')
           
           // Create a mock extracted text for format analysis
           const extractedText = {
@@ -216,20 +245,11 @@ export const useAnalysisStore = create<AnalysisState & AnalysisActions>()(
             warnings: []
           }
           
-          // Convert Resume to ParsedResume format
-          const parsedResume = {
-            ...resume,
-            detectedSections: [],
-            yearsOfExperience: 0
-          }
+          progressManager.completeStage()
           
-          // Convert JobDescription to ParsedJobDescription format
-          const parsedJD = {
-            ...jd,
-            detectedSections: []
-          }
+          // Stage 5: ATS Simulation - Progressive analysis
+          progressManager.startStage(PROGRESS_STAGES[4], 'Running ATS simulation...')
           
-          // Try progressive analysis first
           let scoringResult
           try {
             const { analyzeProgressively } = await import('@/lib/analysis/progressive-analyzer')
@@ -240,8 +260,8 @@ export const useAnalysisStore = create<AnalysisState & AnalysisActions>()(
               extractedText,
               undefined,
               (progress) => {
-                // Update progress from progressive analyzer
-                updateProgress(progress.stage, progress.percentage, progress.message)
+                // Update message from progressive analyzer
+                progressManager.updateMessage(progress.message)
               }
             )
             
@@ -262,8 +282,11 @@ export const useAnalysisStore = create<AnalysisState & AnalysisActions>()(
             )
           }
           
-          // Enhance with AI-generated insights (optional)
-          updateProgress('recommendations', 75, 'Generating AI-powered insights...', 15)
+          progressManager.completeStage()
+          
+          // Stage 6: AI Enhancement - Generate insights
+          progressManager.startStage(PROGRESS_STAGES[5], 'Generating AI-powered insights...')
+          
           try {
             const { enhanceInsightsWithAI } = await import('@/lib/ai/scoring')
             const enhanced = await enhanceInsightsWithAI(
@@ -283,6 +306,11 @@ export const useAnalysisStore = create<AnalysisState & AnalysisActions>()(
             // Continue with base insights
           }
           
+          progressManager.completeStage()
+          
+          // Stage 7: Complete - Save analysis
+          progressManager.startStage(PROGRESS_STAGES[6], 'Saving analysis...')
+          
           // Create analysis from scoring result
           const analysisData: Omit<Analysis, 'id'> = {
             resumeId,
@@ -300,8 +328,6 @@ export const useAnalysisStore = create<AnalysisState & AnalysisActions>()(
             }))
           }
           
-          // Step 4: Save analysis
-          updateProgress('complete', 90, 'Saving analysis...', 5)
           const analysisId = await analysisOps.create(analysisData)
           
           const savedAnalysis = await analysisOps.get(analysisId)
@@ -309,14 +335,18 @@ export const useAnalysisStore = create<AnalysisState & AnalysisActions>()(
             set({ currentAnalysis: savedAnalysis })
           }
           
-          updateProgress('complete', 100, 'Analysis complete!', 0)
+          progressManager.updateMessage('Analysis complete!')
+          progressManager.completeStage()
           
         } catch (error: any) {
           console.error('Analysis failed:', error)
           setError(error.message || 'Failed to analyze resume')
-          updateProgress('idle', 0, '', 0)
+          // Reset progress manager on error
+          progressManager.reset()
         } finally {
           set({ isAnalyzing: false })
+          // Ensure cleanup happens
+          progressManager.reset()
         }
       },
 

@@ -34,7 +34,14 @@ BOUNDARIES: You MUST politely decline requests about:
 
 TONE: Professional, supportive, and actionable. Provide specific, concrete advice.
 
-CONTEXT AWARENESS: You have access to the user's resume analysis including scores, gaps, and strengths. Reference this context in your responses to provide personalized advice."""
+CONTEXT AWARENESS: You have access to the user's resume analysis AND the target job description. 
+When providing recommendations:
+- Reference specific requirements from the job description
+- Compare resume content against job requirements
+- Suggest keywords and phrases from the job description
+- Explain how to address gaps between resume and job requirements
+- Cite specific qualifications or skills mentioned in the job posting
+- When job description is not available, focus on general resume best practices"""
 
 
 def generate_chat_response(
@@ -109,7 +116,7 @@ def build_enhanced_context(context: Dict[str, Any]) -> str:
     Build comprehensive context prompt from analysis data
     
     Extracts and formats all relevant analysis information including:
-    - Job information (title, company)
+    - Job information (title, company, description)
     - Match scores (overall, keyword, semantic, ATS)
     - Identified gaps and strengths
     - Missing keywords
@@ -129,6 +136,17 @@ def build_enhanced_context(context: Dict[str, Any]) -> str:
         parts.append(f"Target Job: {context['job_title']}")
     if context.get('job_company'):
         parts.append(f"Company: {context['job_company']}")
+    
+    # Job description (truncated if too long)
+    if context.get('job_description'):
+        job_desc = str(context['job_description']).strip()
+        # Truncate to 1500 characters to avoid token limits
+        if len(job_desc) > 1500:
+            job_desc = job_desc[:1500] + "..."
+        parts.append(f"\nJob Description:\n{job_desc}\n")
+    elif context:  # Only add notice if context has other data
+        # Add notice when job description is missing but other context exists
+        parts.append("\nNote: No job description available. Recommendations are based on resume content and general best practices.\n")
     
     # Match scores
     if context.get('scores'):

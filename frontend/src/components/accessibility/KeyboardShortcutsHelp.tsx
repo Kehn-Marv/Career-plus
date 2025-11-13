@@ -38,11 +38,28 @@ export default function KeyboardShortcutsHelp() {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 right-4 p-3 bg-white border border-gray-300 rounded-full shadow-lg hover:shadow-xl transition-shadow z-40"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setIsOpen(true)
+          }
+        }}
+        className={`
+          flex items-center justify-center
+          w-12 h-12 md:w-14 md:h-14
+          bg-white border border-gray-300
+          rounded-full
+          shadow-lg hover:shadow-xl
+          transition-all duration-300 ease-out
+          hover:scale-110 hover:-translate-y-1
+          focus:outline-none focus:ring-4 focus:ring-gray-300 focus:ring-opacity-50
+          active:scale-95
+          motion-reduce:transition-none motion-reduce:hover:transform-none motion-reduce:active:transform-none
+        `}
         aria-label="Show keyboard shortcuts"
         title="Keyboard shortcuts (?)"
       >
-        <Keyboard className="w-5 h-5 text-gray-700" />
+        <Keyboard className="w-5 h-5 md:w-6 md:h-6 text-gray-700" aria-hidden="true" />
       </button>
     )
   }

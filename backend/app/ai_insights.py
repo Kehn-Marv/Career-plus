@@ -1,6 +1,11 @@
 """
 AI-Powered Insights and Recommendations Generator
-Uses AI Gateway (remote Ollama via ngrok) to generate personalized insights
+Uses Gemini API for generating personalized insights and recommendations.
+
+Service Coordination Strategy:
+- Gemini API: Used for insights, recommendations, and career advice generation
+- AI Gateway (Ollama): Used by frontend for semantic analysis and format analysis
+- This separation ensures optimal use of each service's strengths
 """
 
 import os

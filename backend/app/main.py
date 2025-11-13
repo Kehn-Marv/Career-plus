@@ -1,6 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .api import router as api_router
+from .config import validate_config, get_config
+
+# Validate configuration on startup
+validate_config()
 
 app = FastAPI(
     title="Career+ Backend API",
@@ -11,13 +15,11 @@ app = FastAPI(
 )
 
 # CORS middleware - allow frontend to access API
+config = get_config()
+cors_origins = config.cors_origins.split(',')
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",  # Frontend dev server
-        "http://localhost:5173",  # Vite default port
-        "https://*.vercel.app",   # Vercel deployments
-    ],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -13,6 +13,7 @@ import type { ChatMessage } from '@/types/analysis'
 interface ChatContext {
   job_title?: string
   job_company?: string
+  job_description?: string
   resume_summary?: string
   scores?: {
     total: number
@@ -501,6 +502,14 @@ export const useChatStore = create<ChatStore>((set, get) => ({
             suggestedText: rec.suggestedText,
             explanation: rec.explanation
           }))
+      }
+      
+      // Add job description text with error handling
+      if (jobDesc.rawText && jobDesc.rawText.trim()) {
+        context.job_description = jobDesc.rawText
+      } else {
+        console.warn('Job description text is empty or missing')
+        context.job_description = ''
       }
       
       // Update cache

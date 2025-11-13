@@ -86,20 +86,21 @@ export function ChatSidebar({ isOpen, onClose, analysisId }: ChatSidebarProps) {
     }
   }
 
+  // Prevent rendering until animation starts to avoid flash
   if (!isOpen) {
     return null
   }
 
   return (
     <>
-      {/* Semi-transparent backdrop overlay */}
+      {/* Semi-transparent backdrop overlay with opacity transition */}
       <div
-        className="fixed inset-0 bg-black/50 z-[999] animate-fadeIn"
+        className="fixed inset-0 bg-black/50 z-[999] transition-opacity duration-300 ease-out"
         onClick={handleBackdropClick}
         aria-hidden="true"
       />
 
-      {/* Sidebar panel */}
+      {/* Sidebar panel with transform transition */}
       <div
         ref={sidebarRef}
         role="dialog"
@@ -107,11 +108,13 @@ export function ChatSidebar({ isOpen, onClose, analysisId }: ChatSidebarProps) {
         aria-labelledby="chat-sidebar-title"
         aria-describedby="chat-sidebar-description"
         tabIndex={-1}
-        className="fixed top-0 right-0 h-full z-[1000] animate-slideIn
+        className="fixed top-0 right-0 h-full z-[1000]
                    w-full sm:w-[360px] md:w-[400px]
                    bg-white shadow-2xl
                    flex flex-col
-                   focus:outline-none"
+                   focus:outline-none
+                   transition-transform duration-300 ease-out
+                   translate-x-0"
       >
         <span id="chat-sidebar-description" className="sr-only">
           Chat with the AI assistant about your resume analysis. Press Escape to close.

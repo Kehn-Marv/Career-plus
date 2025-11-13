@@ -13,3 +13,5 @@ export type { FloatingChatButtonProps } from './FloatingChatButton'
 
 export { ChatSidebar } from './ChatSidebar'
 export type { ChatSidebarProps } from './ChatSidebar'
+
+export { ChatSkeleton } from './ChatSkeleton'

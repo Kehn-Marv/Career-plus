@@ -9,6 +9,7 @@ import ReactMarkdown from 'react-markdown'
 import { List } from 'react-window'
 import { useChatStore } from '../../store/chat-store'
 import { db } from '@/lib/db'
+import { ChatSkeleton } from './ChatSkeleton'
 
 export interface ChatInterfaceProps {
   analysisId?: number
@@ -22,11 +23,14 @@ export function ChatInterface({ analysisId }: ChatInterfaceProps) {
   const [contextPrompts, setContextPrompts] = useState<string[]>([])
   const [showClearDialog, setShowClearDialog] = useState(false)
   const [isClearing, setIsClearing] = useState(false)
+  const [isInitializing, setIsInitializing] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<any>(null)
   const thinkingTimerRef = useRef<NodeJS.Timeout | null>(null)
   const longWaitTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+  const initTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   
   const { 
@@ -47,10 +51,48 @@ export function ChatInterface({ analysisId }: ChatInterfaceProps) {
 
   // Set current analysis on mount and load context-aware prompts
   useEffect(() => {
-    if (analysisId) {
-      setCurrentAnalysis(analysisId)
-      loadContextAwarePrompts(analysisId)
-      checkStorageQuota()
+    const initialize = async () => {
+      setIsInitializing(true)
+      
+      // Set initialization timeout (5 seconds)
+      initTimeoutRef.current = setTimeout(() => {
+        console.warn('Chat initialization timeout reached')
+        setIsInitializing(false)
+      }, 5000)
+      
+      try {
+        if (analysisId) {
+          setCurrentAnalysis(analysisId)
+          await loadContextAwarePrompts(analysisId)
+          await checkStorageQuota()
+        }
+      } catch (error) {
+        console.error('Failed to initialize chat:', error)
+      } finally {
+        // Clear timeout
+        if (initTimeoutRef.current) {
+          clearTimeout(initTimeoutRef.current)
+          initTimeoutRef.current = null
+        }
+        
+        // Small delay to ensure smooth transition
+        setTimeout(() => {
+          setIsInitializing(false)
+          // Focus input field when ready
+          if (inputRef.current && analysisId) {
+            inputRef.current.focus()
+          }
+        }, 100)
+      }
+    }
+    
+    initialize()
+    
+    // Cleanup timeout on unmount
+    return () => {
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current)
+      }
     }
   }, [analysisId, setCurrentAnalysis])
   
@@ -220,6 +262,11 @@ export function ChatInterface({ analysisId }: ChatInterfaceProps) {
     } finally {
       setIsClearing(false)
     }
+  }
+
+  // Show skeleton loader during initialization
+  if (isInitializing) {
+    return <ChatSkeleton />
   }
 
   return (
@@ -395,6 +442,7 @@ export function ChatInterface({ analysisId }: ChatInterfaceProps) {
       <div className="p-4 border-t border-gray-200 bg-gray-50">
         <div className="flex gap-2">
           <textarea
+            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
