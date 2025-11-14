@@ -4,6 +4,10 @@ WeasyPrint is used for generating professional PDF resumes from HTML templates. 
 
 ## Installation
 
+### Important: Python Version Compatibility
+
+WeasyPrint works best with Python 3.11 or 3.12. If you're using Python 3.13, you may encounter compatibility issues with GTK bindings. Consider using Python 3.11 for the backend.
+
 ### 1. Install Python Package
 
 The Python package is already included in `requirements.txt`:
@@ -14,25 +18,30 @@ pip install weasyprint
 
 ### 2. Install System Dependencies
 
-WeasyPrint requires GTK+ libraries (Pango, Cairo, GObject) to render PDFs.
+WeasyPrint requires GTK3+ libraries (Pango, Cairo, GObject) to render PDFs.
 
 #### Windows
 
-**Option A: Using GTK for Windows (Recommended)**
+**Option A: Using MSYS2 (Recommended for Python 3.13)**
+
+1. Download and install MSYS2 from: https://www.msys2.org/
+2. Open MSYS2 UCRT64 terminal and run:
+   ```bash
+   pacman -S mingw-w64-ucrt-x86_64-gtk3 mingw-w64-ucrt-x86_64-pango mingw-w64-ucrt-x86_64-gdk-pixbuf2 mingw-w64-ucrt-x86_64-cairo
+   ```
+3. Add MSYS2 bin directory to your system PATH:
+   - Open System Environment Variables
+   - Add `C:\msys64\ucrt64\bin` to PATH
+   - Restart your terminal/IDE
+
+**Option B: Using GTK for Windows**
 
 1. Download GTK3 Runtime from: https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases
 2. Run the installer and follow the installation wizard
 3. Add GTK to your system PATH (the installer should do this automatically)
 4. Restart your terminal/IDE
 
-**Option B: Using MSYS2**
-
-1. Download and install MSYS2 from: https://www.msys2.org/
-2. Open MSYS2 terminal and run:
-   ```bash
-   pacman -S mingw-w64-x86_64-gtk3 mingw-w64-x86_64-pango mingw-w64-x86_64-gdk-pixbuf2
-   ```
-3. Add MSYS2 bin directory to your PATH: `C:\msys64\mingw64\bin`
+**Note:** If you have old GTK2 runtime installed (in `C:\Program Files (x86)\GTK2-Runtime`), you may need to remove it or ensure GTK3 paths come first in your PATH.
 
 #### Linux (Ubuntu/Debian)
 

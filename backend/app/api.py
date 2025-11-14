@@ -222,6 +222,14 @@ async def auto_fix_endpoint(request: Request, payload: AutoFixRequest):
     applied_fixes = []
     
     try:
+        # Log received payload for debugging
+        print(f"[Auto-Fix] Received payload:")
+        print(f"  - resume_json type: {type(payload.resume_json)}")
+        print(f"  - resume_json keys: {list(payload.resume_json.keys()) if isinstance(payload.resume_json, dict) else 'N/A'}")
+        print(f"  - ats_issues count: {len(payload.ats_issues)}")
+        print(f"  - recommendations count: {len(payload.recommendations)}")
+        print(f"  - job_description length: {len(payload.job_description)}")
+        
         # Step 1: Content Optimization
         print("[Auto-Fix] Step 1: Optimizing content...")
         optimized_content = await optimize_resume_content(
@@ -266,6 +274,10 @@ async def auto_fix_endpoint(request: Request, payload: AutoFixRequest):
         
     except ValueError as e:
         # Validation or parsing errors
+        import traceback
+        print(f"[Auto-Fix] ValueError occurred:")
+        print(f"  Error: {str(e)}")
+        traceback.print_exc()
         raise HTTPException(status_code=400, detail=f"Invalid data: {str(e)}")
     except Exception as e:
         # Log the full error for debugging
@@ -346,6 +358,7 @@ async def generate_pdf_endpoint(request: Request, payload: PDFGenerationRequest)
         
         # Generate PDF using template engine
         print(f"[PDF Generation] Using template: {payload.template_id}")
+        print(f"[PDF Generation] Resume data keys: {list(payload.resume_json.keys())}")
         try:
             pdf_bytes = template_engine.generate_pdf(
                 template_id=payload.template_id,
@@ -353,8 +366,12 @@ async def generate_pdf_endpoint(request: Request, payload: PDFGenerationRequest)
                 options=payload.options
             )
         except ValueError as e:
+            print(f"[PDF Generation] ValueError: {str(e)}")
             raise HTTPException(status_code=400, detail=str(e))
         except Exception as e:
+            print(f"[PDF Generation] Exception: {str(e)}")
+            import traceback
+            traceback.print_exc()
             raise HTTPException(
                 status_code=500,
                 detail=f"PDF generation failed: {str(e)}"

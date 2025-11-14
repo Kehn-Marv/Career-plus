@@ -42,7 +42,8 @@ class GeminiClient:
         model: str = GEMINI_MODEL,
         max_tokens: int = 500,
         temperature: float = 0.7,
-        timeout: int = 90
+        timeout: int = 90,
+        response_mime_type: Optional[str] = None
     ) -> str:
         """
         Generate text using Gemini model
@@ -53,6 +54,7 @@ class GeminiClient:
             max_tokens: Maximum tokens to generate
             temperature: Sampling temperature (0-1)
             timeout: Request timeout in seconds
+            response_mime_type: Optional MIME type for response (e.g., 'application/json')
             
         Returns:
             Generated text response
@@ -65,6 +67,7 @@ class GeminiClient:
             config = types.GenerateContentConfig(
                 temperature=temperature,
                 max_output_tokens=max_tokens,
+                response_mime_type=response_mime_type
             )
             
             # Make the API call
@@ -123,7 +126,8 @@ def generate_text(
     model: str = GEMINI_MODEL,
     max_tokens: int = 500,
     temperature: float = 0.7,
-    timeout: int = 90
+    timeout: int = 90,
+    response_mime_type: Optional[str] = None
 ) -> str:
     """
     Convenience function to generate text using the Gemini client
@@ -134,6 +138,7 @@ def generate_text(
         max_tokens: Maximum tokens to generate
         temperature: Sampling temperature
         timeout: Request timeout
+        response_mime_type: Optional MIME type for response (e.g., 'application/json')
         
     Returns:
         Generated text
@@ -144,7 +149,7 @@ def generate_text(
     if gemini_client is None:
         raise Exception("Gemini client is not initialized")
     
-    return gemini_client.generate(prompt, model, max_tokens, temperature, timeout)
+    return gemini_client.generate(prompt, model, max_tokens, temperature, timeout, response_mime_type)
 
 
 def check_ai_available() -> bool:

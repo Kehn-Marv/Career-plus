@@ -6,9 +6,20 @@ Manages resume templates and renders them to HTML for PDF generation
 from pathlib import Path
 from typing import Dict, Any, Optional
 from jinja2 import Environment, FileSystemLoader, Template
-from weasyprint import HTML, CSS
 from io import BytesIO
 from .cache_manager import cache_template, cache_pdf, generate_cache_key
+
+# Try to import WeasyPrint, but make it optional
+try:
+    from weasyprint import HTML, CSS
+    WEASYPRINT_AVAILABLE = True
+except (ImportError, OSError) as e:
+    WEASYPRINT_AVAILABLE = False
+    WEASYPRINT_ERROR = str(e)
+    print(f"⚠️  WeasyPrint not available: {e}")
+    print("   PDF generation will be disabled. Content optimization will still work.")
+    HTML = None
+    CSS = None
 
 
 class TemplateEngine:
@@ -51,23 +62,13 @@ class TemplateEngine:
         Raises:
             ValueError: If template not found
         """
-        # Handle template aliases for frontend compatibility
-        template_aliases = {
-            'modern-professional': 'modern',
-            'classic-executive': 'professional',
-            'minimal-tech': 'minimal'
-        }
-        
-        # Resolve alias if exists
-        resolved_id = template_aliases.get(template_id, template_id)
-        
-        if resolved_id not in self.templates:
+        if template_id not in self.templates:
             available = ', '.join(self.templates.keys())
             raise ValueError(
                 f"Template '{template_id}' not found. "
                 f"Available templates: {available}"
             )
-        return self.templates[resolved_id]
+        return self.templates[template_id]
     
     def render(self, template_id: str, resume_data: Dict[str, Any]) -> str:
         """
@@ -149,8 +150,15 @@ class TemplateEngine:
             
         Raises:
             ValueError: If template not found
-            Exception: If PDF generation fails
+            Exception: If PDF generation fails or WeasyPrint not available
         """
+        # Check if WeasyPrint is available
+        if not WEASYPRINT_AVAILABLE:
+            raise Exception(
+                f"PDF generation is not available. WeasyPrint could not be loaded: {WEASYPRINT_ERROR}. "
+                "Please install GTK3 dependencies. See backend/WEASYPRINT_SETUP.md for instructions."
+            )
+        
         # Get default options
         if options is None:
             options = {}

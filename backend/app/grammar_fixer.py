@@ -37,11 +37,15 @@ async def fix_grammar_and_ats(resume: Dict[str, Any]) -> Dict[str, Any]:
         model=GEMINI_MODEL,
         max_tokens=2000,
         temperature=0.3,
-        timeout=120
+        timeout=120,
+        response_mime_type='application/json'  # Force JSON output
     )
     
     corrected_resume = parse_json_response(response)
     validate_corrected_resume(corrected_resume, resume)
+    
+    # Merge back any missing fields from original resume
+    corrected_resume = merge_missing_fields(corrected_resume, resume)
     
     return corrected_resume
 
@@ -72,7 +76,10 @@ def build_grammar_prompt(resume: Dict[str, Any]) -> str:
     if cached_prompt is not None:
         return cached_prompt
     
-    resume_json = json.dumps(resume, indent=2)
+    # Remove rawText field if present (it contains binary PDF data)
+    resume_for_prompt = {k: v for k, v in resume.items() if k != 'rawText'}
+    
+    resume_json = json.dumps(resume_for_prompt, indent=2)
     
     prompt = f"""You are an expert grammar checker and ATS optimization specialist with advanced expertise comparable to Grammarly and DeepL in quality. You have deep knowledge of professional resume writing, applicant tracking systems, and linguistic best practices.
 
@@ -139,12 +146,17 @@ COMPREHENSIVE GRAMMAR AND ATS OPTIMIZATION INSTRUCTIONS:
 CRITICAL REQUIREMENTS:
 - Preserve ALL factual information (dates, companies, titles, achievements, numbers)
 - Maintain the candidate's authentic voice and personality
-- Keep the same JSON structure as input
+- Keep the EXACT same JSON structure as input with ALL fields
+- Preserve ALL fields including: name, email, phone, location, linkedin, portfolio, fileName, fileType, fileSize, and any other metadata
+- DO NOT include the rawText field in your response (it will be restored automatically)
 - Do not add or remove content - only improve grammar and phrasing
+- Do not omit any fields or sections from the original resume
 - Ensure professional tone throughout
 
 OUTPUT FORMAT:
-Return ONLY a valid JSON object with the exact same structure as the input. Do not include any explanations, markdown formatting, or additional text.
+Return ONLY a valid JSON object with the EXACT same structure and ALL fields as the input resume (except rawText). 
+Every field present in the input must be present in the output.
+Do not include any explanations, markdown formatting, or additional text.
 
 Begin grammar and ATS optimization now:"""
     
@@ -167,20 +179,91 @@ def parse_json_response(response: str) -> Dict[str, Any]:
     Raises:
         ValueError: If response cannot be parsed as JSON
     """
+    # Log raw response for debugging
+    print(f"[Grammar Fixer] Raw response (first 300 chars): {response[:300]}")
+    
     # Remove markdown code blocks if present
     cleaned = response.strip()
-    if cleaned.startswith('```'):
-        # Find the first newline after opening ```
-        start = cleaned.find('\n')
-        # Find the closing ```
-        end = cleaned.rfind('```')
-        if start != -1 and end != -1:
-            cleaned = cleaned[start+1:end].strip()
     
+    # Handle ```json prefix
+    if cleaned.startswith('```json'):
+        cleaned = cleaned[7:]  # Remove ```json
+    elif cleaned.startswith('```'):
+        cleaned = cleaned[3:]  # Remove ```
+    
+    # Remove trailing ```
+    if cleaned.endswith('```'):
+        cleaned = cleaned[:-3]
+    
+    cleaned = cleaned.strip()
+    
+    print(f"[Grammar Fixer] Cleaned response (first 300 chars): {cleaned[:300]}")
+    
+    # Try to parse
     try:
         return json.loads(cleaned)
     except json.JSONDecodeError as e:
+        print(f"[Grammar Fixer] JSON parse failed: {e}")
+        
+        # Try to extract JSON object
+        start_idx = cleaned.find('{')
+        end_idx = cleaned.rfind('}')
+        
+        if start_idx != -1 and end_idx != -1:
+            json_str = cleaned[start_idx:end_idx + 1]
+            print(f"[Grammar Fixer] Trying extracted JSON (first 300 chars): {json_str[:300]}")
+            try:
+                return json.loads(json_str)
+            except json.JSONDecodeError as e2:
+                print(f"[Grammar Fixer] Extracted JSON also failed: {e2}")
+        
         raise ValueError(f"Failed to parse AI response as JSON: {e}\nResponse: {response[:200]}...")
+
+
+def merge_missing_fields(corrected: Dict[str, Any], original: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Merge any missing fields from original resume into corrected resume
+    
+    This ensures that if the AI accidentally omits fields, they are preserved.
+    
+    Args:
+        corrected: Corrected resume data
+        original: Original resume data
+        
+    Returns:
+        Corrected resume with all original fields preserved
+    """
+    result = corrected.copy()
+    
+    # Add any missing top-level fields from original
+    for key, value in original.items():
+        if key not in result:
+            print(f"[Grammar Fixer] Restoring missing field: {key}")
+            result[key] = value
+    
+    # Special handling for experience - ensure all fields are preserved
+    if 'experience' in original and 'experience' in result:
+        if isinstance(original['experience'], list) and isinstance(result['experience'], list):
+            for i, orig_exp in enumerate(original['experience']):
+                if i < len(result['experience']):
+                    opt_exp = result['experience'][i]
+                    # Merge missing fields from original experience entry
+                    for key, value in orig_exp.items():
+                        if key not in opt_exp:
+                            opt_exp[key] = value
+    
+    # Special handling for education - ensure all fields are preserved
+    if 'education' in original and 'education' in result:
+        if isinstance(original['education'], list) and isinstance(result['education'], list):
+            for i, orig_edu in enumerate(original['education']):
+                if i < len(result['education']):
+                    opt_edu = result['education'][i]
+                    # Merge missing fields from original education entry
+                    for key, value in orig_edu.items():
+                        if key not in opt_edu:
+                            opt_edu[key] = value
+    
+    return result
 
 
 def validate_corrected_resume(corrected: Dict[str, Any], original: Dict[str, Any]) -> None:

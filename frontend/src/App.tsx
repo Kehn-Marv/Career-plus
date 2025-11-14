@@ -9,10 +9,14 @@ import { FloatingChatButton } from '@/components/chat/FloatingChatButton'
 import FloatingButtonGroup from '@/components/layout/FloatingButtonGroup'
 import { useChatStore } from '@/store/chat-store'
 import { useAnalysisStore } from '@/store/analysis-store'
+import ErrorBoundary from '@/components/ErrorBoundary'
 
 // Lazy load pages for code splitting
 const Home = lazy(() => import('@/pages/Home'))
-const Analyze = lazy(() => import('@/pages/Analyze'))
+const Analyze = lazy(() => import('@/pages/Analyze').catch(err => {
+  console.error('Failed to load Analyze page:', err)
+  return { default: () => <div className="min-h-screen flex items-center justify-center bg-gray-50"><div className="text-center"><h1 className="text-2xl font-bold text-red-600 mb-4">Failed to load Analyze page</h1><p className="text-gray-600">{err.message}</p></div></div> }
+}))
 const History = lazy(() => import('@/pages/History'))
 
 // Lazy load ChatSidebar - only load when first opened
@@ -45,13 +49,15 @@ function AppContent() {
   return (
     <>
       <SkipLink />
-      <Suspense fallback={<LoadingSpinner />}>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/analyze" element={<Analyze />} />
-          <Route path="/history" element={<History />} />
-        </Routes>
-      </Suspense>
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingSpinner />}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/analyze" element={<Analyze />} />
+            <Route path="/history" element={<History />} />
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
       <OfflineIndicator />
       
       {/* Floating action buttons - Grouped for proper positioning */}

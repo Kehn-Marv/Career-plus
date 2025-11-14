@@ -33,18 +33,22 @@ async def optimize_resume_content(
     # Build the optimization prompt
     prompt = build_optimization_prompt(resume, issues, recommendations, job_description)
     
-    # Call Gemini API with appropriate settings
+    # Call Gemini API with appropriate settings and JSON mode
     response = generate_text(
         prompt=prompt,
         model=GEMINI_MODEL,
         max_tokens=2000,
         temperature=0.7,
-        timeout=120
+        timeout=120,
+        response_mime_type='application/json'  # Force JSON output
     )
     
     # Parse and validate the JSON response
     optimized_resume = parse_json_response(response)
-    validate_resume_structure(optimized_resume)
+    validate_resume_structure(optimized_resume, resume)
+    
+    # Merge back any missing fields from original resume
+    optimized_resume = merge_missing_fields(optimized_resume, resume)
     
     return optimized_resume
 
@@ -81,8 +85,11 @@ def build_optimization_prompt(
     # Format recommendations for prompt
     recommendations_text = format_recommendations_for_prompt(recommendations)
     
+    # Remove rawText field if present (it contains binary PDF data that breaks JSON)
+    resume_for_prompt = {k: v for k, v in resume.items() if k != 'rawText'}
+    
     # Convert resume to JSON string
-    resume_json = json.dumps(resume, indent=2)
+    resume_json = json.dumps(resume_for_prompt, indent=2)
     
     # Truncate job description if too long
     job_desc_truncated = job_description[:500] if len(job_description) > 500 else job_description
@@ -113,8 +120,28 @@ INSTRUCTIONS:
 6. Ensure natural language flow - no keyword stuffing
 
 OUTPUT FORMAT:
-Return ONLY a valid JSON object with this exact structure:
+Return ONLY a valid JSON object that PRESERVES ALL FIELDS from the original resume and enhances the content.
+
+CRITICAL: You MUST include ALL fields from the original resume, including:
+- All contact information (name, email, phone, location, linkedin, portfolio, etc.)
+- All metadata fields (fileName, fileType, fileSize, etc.) - BUT EXCLUDE rawText
+- All sections (summary, experience, education, skills, certifications, projects, etc.)
+- Any custom fields or sections present in the original
+
+Only enhance the CONTENT of these fields - do not remove or omit any fields.
+DO NOT include the rawText field in your response.
+
+Example structure (adapt to match the original resume's structure):
 {{
+  "fileName": "original_filename.pdf",
+  "fileType": "application/pdf",
+  "fileSize": 12345,
+  "name": "Candidate Name",
+  "email": "email@example.com",
+  "phone": "+1234567890",
+  "location": "City, State",
+  "linkedin": "linkedin.com/in/profile",
+  "portfolio": "portfolio.com",
   "summary": "Enhanced professional summary...",
   "experience": [
     {{
@@ -122,7 +149,11 @@ Return ONLY a valid JSON object with this exact structure:
       "company": "Company Name",
       "location": "City, State",
       "dates": "Start - End",
-      "description": ["Bullet point 1", "Bullet point 2", ...]
+      "startDate": "YYYY-MM",
+      "endDate": "YYYY-MM",
+      "current": false,
+      "description": ["Enhanced bullet 1", "Enhanced bullet 2", ...],
+      "bullets": ["Enhanced bullet 1", "Enhanced bullet 2", ...]
     }}
   ],
   "education": [
@@ -131,18 +162,16 @@ Return ONLY a valid JSON object with this exact structure:
       "institution": "School Name",
       "location": "City, State",
       "dates": "Start - End",
+      "graduationDate": "YYYY-MM",
+      "gpa": "3.8",
+      "honors": ["Honor 1", "Honor 2"],
       "details": []
     }}
   ],
   "skills": ["skill1", "skill2", ...],
-  "certifications": [
-    {{
-      "name": "Certification Name",
-      "issuer": "Issuing Organization",
-      "date": "Date",
-      "details": ""
-    }}
-  ]
+  "certifications": [...],
+  "projects": [...],
+  ...any other fields from original resume...
 }}
 
 Begin optimization now:"""
@@ -254,6 +283,9 @@ def parse_json_response(response: str) -> Dict[str, Any]:
     # Sometimes AI wraps JSON in markdown code blocks
     response = response.strip()
     
+    # Log the raw response for debugging
+    print(f"[JSON Parser] Raw AI response (first 500 chars): {response[:500]}")
+    
     # Remove markdown code blocks if present
     if response.startswith("```json"):
         response = response[7:]
@@ -270,49 +302,126 @@ def parse_json_response(response: str) -> Dict[str, Any]:
         parsed = json.loads(response)
         return parsed
     except json.JSONDecodeError as e:
+        print(f"[JSON Parser] Initial parse failed: {e}")
+        
         # Try to find JSON object in the response
         start_idx = response.find('{')
         end_idx = response.rfind('}')
         
         if start_idx != -1 and end_idx != -1:
             json_str = response[start_idx:end_idx + 1]
+            print(f"[JSON Parser] Extracted JSON substring (first 500 chars): {json_str[:500]}")
             try:
                 parsed = json.loads(json_str)
                 return parsed
-            except json.JSONDecodeError:
-                pass
+            except json.JSONDecodeError as e2:
+                print(f"[JSON Parser] Substring parse also failed: {e2}")
+                
+                # Try to fix common JSON issues
+                # 1. Fix unterminated strings by adding closing quotes
+                # 2. Remove trailing commas
+                # 3. Escape unescaped quotes
+                try:
+                    import re
+                    # Remove trailing commas before closing braces/brackets
+                    fixed_json = re.sub(r',(\s*[}\]])', r'\1', json_str)
+                    parsed = json.loads(fixed_json)
+                    print("[JSON Parser] Successfully parsed after fixing trailing commas")
+                    return parsed
+                except json.JSONDecodeError:
+                    pass
         
+        # If all parsing attempts fail, log the full response and raise
+        print(f"[JSON Parser] All parsing attempts failed. Full response:\n{response}")
         raise ValueError(f"Failed to parse JSON from AI response: {e}")
 
 
-def validate_resume_structure(resume: Dict[str, Any]) -> None:
+def merge_missing_fields(optimized: Dict[str, Any], original: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Validate that the optimized resume has the expected structure
+    Merge any missing fields from original resume into optimized resume
+    
+    This ensures that if the AI accidentally omits fields, they are preserved.
+    
+    Args:
+        optimized: Optimized resume data
+        original: Original resume data
+        
+    Returns:
+        Optimized resume with all original fields preserved
+    """
+    result = optimized.copy()
+    
+    # Add any missing top-level fields from original
+    for key, value in original.items():
+        if key not in result:
+            print(f"Restoring missing field: {key}")
+            result[key] = value
+    
+    # Special handling for experience - ensure all fields are preserved
+    if 'experience' in original and 'experience' in result:
+        if isinstance(original['experience'], list) and isinstance(result['experience'], list):
+            # Match experience entries by title and company
+            for i, orig_exp in enumerate(original['experience']):
+                if i < len(result['experience']):
+                    opt_exp = result['experience'][i]
+                    # Merge missing fields from original experience entry
+                    for key, value in orig_exp.items():
+                        if key not in opt_exp:
+                            opt_exp[key] = value
+    
+    # Special handling for education - ensure all fields are preserved
+    if 'education' in original and 'education' in result:
+        if isinstance(original['education'], list) and isinstance(result['education'], list):
+            for i, orig_edu in enumerate(original['education']):
+                if i < len(result['education']):
+                    opt_edu = result['education'][i]
+                    # Merge missing fields from original education entry
+                    for key, value in orig_edu.items():
+                        if key not in opt_edu:
+                            opt_edu[key] = value
+    
+    return result
+
+
+def validate_resume_structure(resume: Dict[str, Any], original: Dict[str, Any] = None) -> None:
+    """
+    Validate that the optimized resume has the expected structure and preserves all original fields
     
     Args:
         resume: Resume data to validate
+        original: Original resume data to compare against (optional)
         
     Raises:
-        ValueError: If resume structure is invalid
+        ValueError: If resume structure is invalid or fields are missing
     """
     # Check for required top-level keys
     if not isinstance(resume, dict):
         raise ValueError("Resume must be a dictionary")
+    
+    # If original is provided, check that all original fields are preserved
+    if original is not None:
+        original_keys = set(original.keys())
+        resume_keys = set(resume.keys())
+        missing_keys = original_keys - resume_keys
+        
+        if missing_keys:
+            print(f"WARNING: Optimized resume is missing fields: {missing_keys}")
+            # Don't raise error, just warn - some fields might be intentionally restructured
     
     # Validate experience section if present
     if 'experience' in resume:
         if not isinstance(resume['experience'], list):
             raise ValueError("Experience must be a list")
         
-        for exp in resume['experience']:
+        for i, exp in enumerate(resume['experience']):
             if not isinstance(exp, dict):
-                raise ValueError("Each experience entry must be a dictionary")
+                raise ValueError(f"Experience entry {i} must be a dictionary")
             
             # Check for required fields
             required_fields = ['title', 'company']
             for field in required_fields:
-                if field not in exp:
-                    raise ValueError(f"Experience entry missing required field: {field}")
+                if field not in exp or not exp[field]:
+                    raise ValueError(f"Experience entry {i} missing or has empty required field: {field}")
     
     # Validate education section if present
     if 'education' in resume:

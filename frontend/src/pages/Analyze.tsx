@@ -23,8 +23,10 @@ import type { StrengthAnalysis } from '@/lib/analysis/strength-analyzer'
 import type { Resume } from '@/lib/db/schema'
 
 export default function Analyze() {
+  console.log('Analyze component rendering...')
   const [searchParams] = useSearchParams()
   const analysisId = searchParams.get('analysisId')
+  console.log('Analysis ID from URL:', analysisId)
   
   const { 
     currentAnalysis, 
